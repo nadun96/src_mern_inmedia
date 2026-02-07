@@ -7,3 +7,10 @@ app.get('/',
         response.send("Welcome to the Express server!");
     }
 );
+
+app.listen(
+    PORT,
+    () => {
+        console.log(`Server is running on port ${PORT}`);
+    }
+);
