@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import authRouter from './routes/authentication.js';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,7 @@ const app: express.Express = express();
 const PORT: number = 3000;
 
 app.use(express.json());
+app.use('/auth', authRouter);
 
 app.get('/',
     (request: Request, response: Response) => {
