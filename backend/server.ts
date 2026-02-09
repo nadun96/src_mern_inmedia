@@ -3,6 +3,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import authRouter from './routes/authentication.js';
+import postsRouter from './routes/posts.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const prisma = new PrismaClient();
@@ -12,6 +13,7 @@ const PORT: number = 3000;
 
 app.use(express.json());
 app.use('/auth', authRouter);
+app.use('/posts', postsRouter);
 
 app.get('/',
     (request: Request, response: Response) => {
