@@ -1,22 +1,13 @@
 import express from 'express';
 import type { Request, Response } from 'express';
-import { config } from './config.js';
-import mongoose from 'mongoose';
+import { PrismaClient } from '@prisma/client';
 
-mongoose.connect(config.MONGODB_URI);
-
-mongoose.connection.on('connected', () => {
-    console.log('Connected to MongoDB');
-});
-
-mongoose.connection.on('error', (err) => {
-    console.error('Error connecting to MongoDB:', err);
-});
-
-
+const prisma = new PrismaClient();
 
 const app: express.Express = express();
 const PORT: number = 3000;
+
+app.use(express.json());
 
 app.get('/',
     (request: Request, response: Response) => {
@@ -26,7 +17,9 @@ app.get('/',
 
 app.listen(
     PORT,
-    () => {
+    async () => {
+        await prisma.$connect();
+        console.log('Connected to MongoDB via Prisma');
         console.log(`Server is running on port ${PORT}`);
     }
 );
