@@ -1,7 +1,7 @@
 import express, { Router, type Request, type Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions, type Secret } from 'jsonwebtoken';
 
 const router: Router = express.Router();
 const prisma = new PrismaClient();
@@ -11,11 +11,9 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // Generate JWT token
 const generateToken = (userId: string, email: string): string => {
-  return jwt.sign(
-    { userId, email }, 
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN as string }
-  );
+  const payload = { userId, email };
+  const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as SignOptions['expiresIn'] };
+  return jwt.sign(payload, JWT_SECRET as Secret, options);
 };
 
 // POST /auth/signup - Register a new user
