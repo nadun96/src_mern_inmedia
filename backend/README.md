@@ -478,3 +478,367 @@ This short guide explains how JWT is used in this project and how to experiment 
    - Consider implementing refresh tokens and token rotation for long-lived sessions.
 
 This section should help you experiment with JWT locally and understand how the token flow ties into the codebase.
+
+# API Documentation with Swagger/OpenAPI
+
+This project includes **Swagger UI** for interactive API documentation and testing.
+
+## Setup Steps
+
+### 1. Install Dependencies
+
+```bash
+pnpm add swagger-ui-express swagger-jsdoc
+pnpm add -D @types/swagger-ui-express @types/swagger-jsdoc
+```
+
+### 2. Create Swagger Configuration File
+
+Create `swagger.ts` in the backend root with OpenAPI 3.0 spec definition:
+
+```typescript
+import swaggerJsdoc from "swagger-jsdoc";
+
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "MERN Blog API",
+      version: "1.0.0",
+      description: "API documentation for the MERN blog application",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Development server",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "JWT Authorization header using the Bearer scheme",
+        },
+      },
+      schemas: {
+        // Define reusable schemas here
+        User: {
+          /* ... */
+        },
+        Post: {
+          /* ... */
+        },
+        Error: {
+          /* ... */
+        },
+      },
+    },
+  },
+  apis: ["./routes/*.ts"],
+};
+
+export const specs = swaggerJsdoc(options);
+```
+
+### 3. Integrate Swagger UI in Server
+
+Update `server.ts`:
+
+```typescript
+import swaggerUi from "swagger-ui-express";
+import { specs } from "./swagger.js";
+
+// ... other imports and setup
+
+app.use(express.json());
+
+// Swagger documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(specs, { swaggerOptions: { persistAuthorization: true } }),
+);
+
+app.use("/auth", authRouter);
+app.use("/posts", postsRouter);
+```
+
+### 4. Access Swagger UI
+
+Start your development server:
+
+```bash
+pnpm dev
+```
+
+Visit: **`http://localhost:3000/api-docs`**
+
+You'll see an interactive interface where you can:
+
+- Browse all API endpoints
+- View request/response schemas
+- Test endpoints directly from the UI
+- Authorize with JWT tokens for protected routes
+
+## Adding New Routes with Swagger Documentation
+
+When adding a new route, follow these steps to ensure it appears properly in Swagger:
+
+### Step 1: Add JSDoc Comments Above Your Route
+
+Place JSDoc comments using `@swagger` tags directly above the route handler:
+
+```typescript
+/**
+ * @swagger
+ * /your-endpoint:
+ *   get:
+ *     summary: Brief description of what this does
+ *     tags:
+ *       - YourFeature
+ *     responses:
+ *       200:
+ *         description: Success response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 key:
+ *                   type: string
+ */
+router.get("/your-endpoint", async (request: Request, response: Response) => {
+  // route logic
+});
+```
+
+### Step 2: Document Request Bodies (for POST/PUT/PATCH)
+
+```typescript
+/**
+ * @swagger
+ * /your-endpoint:
+ *   post:
+ *     summary: Create something
+ *     tags:
+ *       - YourFeature
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - field1
+ *               - field2
+ *             properties:
+ *               field1:
+ *                 type: string
+ *                 description: Description of field1
+ *               field2:
+ *                 type: number
+ *                 description: Description of field2
+ *     responses:
+ *       201:
+ *         description: Created successfully
+ */
+router.post("/your-endpoint", async (request: Request, response: Response) => {
+  // route logic
+});
+```
+
+### Step 3: Document Protected Routes with Security
+
+For routes requiring authentication, add the `security` field:
+
+```typescript
+/**
+ * @swagger
+ * /protected-endpoint:
+ *   post:
+ *     summary: Protected endpoint
+ *     tags:
+ *       - YourFeature
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               field:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  "/protected-endpoint",
+  authenticateToken,
+  async (request: Request, response: Response) => {
+    // route logic
+  },
+);
+```
+
+### Step 4: Use Schema References
+
+For consistency, reference schemas defined in `swagger.ts` using `$ref`:
+
+```typescript
+/**
+ * @swagger
+ * /items:
+ *   get:
+ *     responses:
+ *       200:
+ *         description: List of items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
+ */
+router.get("/items", async (request: Request, response: Response) => {
+  // route logic
+});
+```
+
+### Step 5: Document Path Parameters
+
+For routes with parameters like `/:id`:
+
+```typescript
+/**
+ * @swagger
+ * /items/{id}:
+ *   get:
+ *     summary: Get item by ID
+ *     tags:
+ *       - Items
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Item ID
+ *     responses:
+ *       200:
+ *         description: Item details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       404:
+ *         description: Item not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/:id", async (request: Request, response: Response) => {
+  // route logic
+});
+```
+
+### Step 6: Document All HTTP Methods
+
+Document each HTTP method (GET, POST, PUT, DELETE, PATCH) it supports:
+
+```typescript
+/**
+ * @swagger
+ * /items/{id}:
+ *   put:
+ *     summary: Update item
+ *     security:
+ *       - bearerAuth: []
+ *   delete:
+ *     summary: Delete item
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put(
+  "/:id",
+  authenticateToken,
+  async (request: Request, response: Response) => {
+    // update logic
+  },
+);
+
+router.delete(
+  "/:id",
+  authenticateToken,
+  async (request: Request, response: Response) => {
+    // delete logic
+  },
+);
+```
+
+### Step 7: Test in Swagger UI
+
+After adding documentation:
+
+1. Save the route file
+2. The Swagger UI automatically picks up changes (no restart needed)
+3. Refresh your browser at `http://localhost:3000/api-docs`
+4. Your new endpoint will appear in the list
+
+## Common Response Status Codes to Document
+
+```typescript
+responses:
+  200:  // GET, PUT, DELETE success
+    description: Success
+  201:  // POST success (created)
+    description: Created successfully
+  400:  // Bad request
+    description: Invalid input data
+  401:  // Unauthorized
+    description: Authentication required or failed
+  403:  // Forbidden
+    description: Authorized but not allowed
+  404:  // Not found
+    description: Resource not found
+  500:  // Server error
+    description: Internal server error
+```
+
+## Project Files Structure
+
+```
+backend/
+├── swagger.ts                 # Swagger/OpenAPI configuration
+├── routes/
+│   ├── authentication.ts      # Auth endpoints with @swagger docs
+│   ├── posts.ts               # Posts endpoints with @swagger docs
+├── server.ts                  # Express setup with Swagger UI middleware
+└── README.md                  # This file
+```
+
+## Tips for Better Documentation
+
+- **Be Descriptive**: Use clear summaries and descriptions
+- **Use Tags**: Organize endpoints by feature (Authentication, Posts, Users, etc.)
+- **Define Schemas**: Create reusable schemas in `swagger.ts` to avoid duplication
+- **Test Everything**: Use the Swagger UI to test your endpoints before pushing to production
+- **Keep it Updated**: Update docs when you modify endpoints or add new fields
+- **Use Examples**: Include example requests/responses in descriptions where helpful
+
+## Resources
+
+- [Swagger/OpenAPI 3.0 Specification](https://swagger.io/specification/)
+- [swagger-jsdoc Documentation](https://github.com/Surnet/swagger-jsdoc)
+- [swagger-ui-express Documentation](https://github.com/scottie1984/swagger-ui-express)

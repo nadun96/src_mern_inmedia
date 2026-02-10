@@ -5,6 +5,29 @@ import { authenticateToken } from '../middleware/auth.js';
 const router: Router = express.Router();
 const prisma = new PrismaClient();
 
+/**
+ * @swagger
+ * /posts:
+ *   get:
+ *     summary: Get all posts
+ *     tags:
+ *       - Posts
+ *     responses:
+ *       200:
+ *         description: List of all posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // GET /posts - Get all posts
 router.get('/', async (request: Request, response: Response) => {
   try {
@@ -18,6 +41,40 @@ router.get('/', async (request: Request, response: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /posts/{id}:
+ *   get:
+ *     summary: Get a single post by ID
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Post details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // GET /posts/:id - Get single post by id
 router.get('/:id', async (request: Request, response: Response) => {
   try {
@@ -38,6 +95,65 @@ router.get('/:id', async (request: Request, response: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /posts:
+ *   post:
+ *     summary: Create a new post
+ *     tags:
+ *       - Posts
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - body
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Post title
+ *               body:
+ *                 type: string
+ *                 description: Post content
+ *               image:
+ *                 type: string
+ *                 description: Post image URL (optional)
+ *     responses:
+ *       201:
+ *         description: Post created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 post:
+ *                   $ref: '#/components/schemas/Post'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // POST /posts - Create a new post (protected route)
 router.post('/', authenticateToken, async (request: Request, response: Response) => {
   try {
@@ -69,6 +185,69 @@ router.post('/', authenticateToken, async (request: Request, response: Response)
   }
 });
 
+/**
+ * @swagger
+ * /posts/{id}:
+ *   put:
+ *     summary: Update a post
+ *     tags:
+ *       - Posts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Post title
+ *               body:
+ *                 type: string
+ *                 description: Post content
+ *               image:
+ *                 type: string
+ *                 description: Post image URL
+ *     responses:
+ *       200:
+ *         description: Post updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 post:
+ *                   $ref: '#/components/schemas/Post'
+ *       403:
+ *         description: Unauthorized - only author can update this post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // PUT /posts/:id - Update a post (protected route)
 router.put('/:id', authenticateToken, async (request: Request, response: Response) => {
   try {
@@ -111,6 +290,51 @@ router.put('/:id', authenticateToken, async (request: Request, response: Respons
   }
 });
 
+/**
+ * @swagger
+ * /posts/{id}:
+ *   delete:
+ *     summary: Delete a post
+ *     tags:
+ *       - Posts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Unauthorized - only author can delete this post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // DELETE /posts/:id - Delete a post (protected route)
 router.delete('/:id', authenticateToken, async (request: Request, response: Response) => {
   try {

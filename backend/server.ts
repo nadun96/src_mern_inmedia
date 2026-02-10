@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './swagger.js';
 import authRouter from './routes/authentication.js';
 import postsRouter from './routes/posts.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -12,6 +14,10 @@ const app: express.Express = express();
 const PORT: number = 3000;
 
 app.use(express.json());
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, { swaggerOptions: { persistAuthorization: true } }));
+
 app.use('/auth', authRouter);
 app.use('/posts', postsRouter);
 
