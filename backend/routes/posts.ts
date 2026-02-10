@@ -9,47 +9,78 @@ const prisma = new PrismaClient();
  * @swagger
  * /posts:
  *   get:
- *     summary: Get all posts
+ *     summary: Get all posts with pagination
  *     tags:
  *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (starts at 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: List of all posts with author details
+ *         description: List of posts with author details and pagination info
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   title:
- *                     type: string
- *                   body:
- *                     type: string
- *                   image:
- *                     type: string
- *                   authorId:
- *                     type: string
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                   updatedAt:
- *                     type: string
- *                     format: date-time
- *                   author:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
  *                     type: object
  *                     properties:
  *                       id:
  *                         type: string
- *                       name:
+ *                       title:
  *                         type: string
- *                       email:
+ *                       body:
+ *                         type: string
+ *                       image:
+ *                         type: string
+ *                       authorId:
  *                         type: string
  *                       createdAt:
  *                         type: string
  *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       author:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
  *       500:
  *         description: Internal server error
  *         content:
@@ -57,23 +88,45 @@ const prisma = new PrismaClient();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// GET /posts - Get all posts
+// GET /posts - Get all posts with pagination
 router.get('/', async (request: Request, response: Response) => {
   try {
-    const posts = await prisma.post.findMany({
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true
+    const page = Math.max(1, parseInt(request.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(request.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true
+            }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.post.count()
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    response.status(200).json({
+      data: posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
-    response.status(200).json(posts);
   } catch (error) {
     console.error('Get posts error:', error);
     response.status(500).json({ error: 'Internal server error' });
@@ -250,6 +303,16 @@ router.post('/', authenticateToken, async (request: Request, response: Response)
         body,
         image: image || '',
         authorId: request.user!.userId
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+          }
+        }
       }
     });
 
@@ -355,6 +418,16 @@ router.put('/:id', authenticateToken, async (request: Request, response: Respons
         title: title || post.title,
         body: body || post.body,
         image: image !== undefined ? image : post.image
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+          }
+        }
       }
     });
 
