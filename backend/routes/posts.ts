@@ -1,6 +1,6 @@
 import express, { Router, type Request, type Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuthentication } from '../middleware/auth.js';
 
 const router: Router = express.Router();
 const prisma = new PrismaClient();
@@ -129,6 +129,175 @@ router.get('/', async (request: Request, response: Response) => {
     });
   } catch (error) {
     console.error('Get posts error:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /posts/author:
+ *   get:
+ *     summary: Get posts from a specific user or logged-in user
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: User ID to get posts from (must be a valid 24-character MongoDB ObjectId). If not provided, requires authentication to return logged-in user's posts.
+ *         example: 507f1f77bcf86cd799439011
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (starts at 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
+ *     responses:
+ *       200:
+ *         description: User's posts with pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       body:
+ *                         type: string
+ *                       image:
+ *                         type: string
+ *                       authorId:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       author:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
+ *       400:
+ *         description: Invalid userId format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized (userId not provided and not authenticated)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// GET /posts/author - Get posts from a specific user or logged-in user
+router.get('/author', optionalAuthentication, async (request: Request, response: Response) => {
+  try {
+    const { userId: queryUserId } = request.query;
+    const page = Math.max(1, parseInt(request.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(request.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    // Determine which user's posts to fetch
+    let targetUserId: string;
+
+    if (queryUserId && typeof queryUserId === 'string') {
+      // Validate MongoDB ObjectId format (24 hex characters)
+      if (!/^[0-9a-fA-F]{24}$/.test(queryUserId)) {
+        response.status(400).json({ error: 'Invalid userId format. Must be a valid MongoDB ObjectId (24 hex characters)' });
+        return;
+      }
+      // If userId is provided as query param, use it (public access)
+      targetUserId = queryUserId;
+    } else if (request.user?.userId) {
+      // If userId is not provided but user is authenticated, use logged-in user
+      targetUserId = request.user.userId;
+    } else {
+      // No userId provided and not authenticated
+      response.status(401).json({ error: 'Unauthorized - provide valid userId or authenticate' });
+      return;
+    }
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where: { authorId: targetUserId },
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.post.count({ where: { authorId: targetUserId } })
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    response.status(200).json({
+      data: posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get user posts error:', error);
     response.status(500).json({ error: 'Internal server error' });
   }
 });

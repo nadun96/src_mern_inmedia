@@ -41,3 +41,29 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Optional authentication - attaches user if token is valid, but doesn't fail if no token
+export const optionalAuthentication = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      // No token provided, continue without authentication
+      next();
+      return;
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (!err) {
+        // Valid token, attach user
+        req.user = decoded as JwtPayload;
+      }
+      // Continue regardless of token validity
+      next();
+    });
+  } catch (error) {
+    // Continue even if error occurs
+    next();
+  }
+};
