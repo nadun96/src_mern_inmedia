@@ -14,13 +14,42 @@ const prisma = new PrismaClient();
  *       - Posts
  *     responses:
  *       200:
- *         description: List of all posts
+ *         description: List of all posts with author details
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Post'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   title:
+ *                     type: string
+ *                   body:
+ *                     type: string
+ *                   image:
+ *                     type: string
+ *                   authorId:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   author:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
  *       500:
  *         description: Internal server error
  *         content:
@@ -32,6 +61,16 @@ const prisma = new PrismaClient();
 router.get('/', async (request: Request, response: Response) => {
   try {
     const posts = await prisma.post.findMany({
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
     response.status(200).json(posts);
@@ -57,11 +96,40 @@ router.get('/', async (request: Request, response: Response) => {
  *         description: Post ID
  *     responses:
  *       200:
- *         description: Post details
+ *         description: Post details with author information
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Post'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 body:
+ *                   type: string
+ *                 image:
+ *                   type: string
+ *                 authorId:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 author:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
  *       404:
  *         description: Post not found
  *         content:
@@ -80,7 +148,17 @@ router.get('/:id', async (request: Request, response: Response) => {
   try {
     const { id } = request.params;
     const post = await prisma.post.findUnique({
-      where: { id: id as string }
+      where: { id: id as string },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+          }
+        }
+      }
     });
 
     if (!post) {

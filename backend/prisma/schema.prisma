@@ -18,6 +18,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  posts     Post[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -27,6 +28,7 @@ model Post {
   title     String
   body      String
   image     String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String   @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

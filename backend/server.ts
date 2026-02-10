@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './swagger.js';
-import authRouter from './routes/authentication.js';
+import authRouter from './routes/auth.js';
 import postsRouter from './routes/posts.js';
 import { authenticateToken } from './middleware/auth.js';
 
