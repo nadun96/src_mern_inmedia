@@ -1,15 +1,16 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "./SignUp.css";
+import M from "materialize-css";
 
-type Props = {};
-
-const SignUp = (props: Props) => {
+const SignUp = () => {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const register = () => {
-    fetch("/signup", {
+    fetch("/auth/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -18,7 +19,14 @@ const SignUp = (props: Props) => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
+        if (data.error) {
+          // alert(data.error);
+          M.toast({ html: data.error, classes: "red" });
+        } else {
+          M.toast({ html: "Registration successful!", classes: "green" });
+          navigate("/login");
+        }
+        // console.log(data);
       })
       .catch((err) => console.error(err));
   };
