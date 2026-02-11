@@ -8,50 +8,68 @@ import authRouter from './routes/auth.js';
 import postsRouter from './routes/posts.js';
 import { authenticateToken } from './middleware/auth.js';
 
+const app = express();
+const PORT = 3000;
 const prisma = new PrismaClient();
-
-const app: express.Express = express();
-const PORT: number = 3000;
 
 app.use(express.json());
 
-// Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, { swaggerOptions: { persistAuthorization: true } }));
+// Swagger setup
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    swaggerOptions: { persistAuthorization: true }
+}));
 
 app.use('/auth', authRouter);
 app.use('/posts', postsRouter);
 
-app.get('/',
-    (request: Request, response: Response) => {
-        response.send("Welcome to the Express server!");
-    }
-);
+app.get('/', (req: Request, res: Response) => {
+    res.send('Welcome to the Express server!');
+});
 
-// Example protected route
-app.get('/profile', authenticateToken, async (request: Request, response: Response) => {
+// Protected route
+app.get('/profile', authenticateToken, async (req: Request, res: Response) => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: request.user?.userId },
+            where: { id: req.user?.userId },
             select: { id: true, name: true, email: true, createdAt: true }
         });
 
         if (!user) {
-            response.status(404).json({ error: 'User not found' });
+            res.status(404).json({ error: 'User not found' });
             return;
         }
 
-        response.json({ user });
+        res.json({ user });
     } catch (error) {
         console.error('Profile error:', error);
-        response.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-app.listen(
-    PORT,
-    async () => {
-        await prisma.$connect();
-        console.log('Connected to MongoDB via Prisma');
+(async () => {
+    await prisma.$connect();
+    console.log('Connected to MongoDB via Prisma');
+    
+    const server = app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
-    }
-);
+        console.log(`Swagger available at http://localhost:${PORT}/api-docs`);
+    });
+    
+    // Keep the process alive
+    process.stdin.resume();
+    
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+        console.log('\nShutting down gracefully...');
+        server.close();
+        await prisma.$disconnect();
+        process.exit(0);
+    });
+    
+    process.on('SIGTERM', async () => {
+        console.log('\nShutting down gracefully...');
+        server.close();
+        await prisma.$disconnect();
+        process.exit(0);
+    });
+})();
