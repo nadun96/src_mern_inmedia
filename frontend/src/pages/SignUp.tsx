@@ -1,15 +1,24 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "./SignUp.css";
+import M from "materialize-css";
 
-type Props = {};
-
-const SignUp = (props: Props) => {
+const SignUp = () => {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const register = () => {
-    fetch("/signup", {
+    if (
+      !/^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/.test(
+        email,
+      )
+    ) {
+      M.toast({ html: "Invalid email format", classes: "red" });
+      return;
+    }
+    fetch("/auth/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -18,7 +27,14 @@ const SignUp = (props: Props) => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
+        if (data.error) {
+          // alert(data.error);
+          M.toast({ html: data.error, classes: "red" });
+        } else {
+          M.toast({ html: "Registration successful!", classes: "green" });
+          navigate("/login");
+        }
+        // console.log(data);
       })
       .catch((err) => console.error(err));
   };
