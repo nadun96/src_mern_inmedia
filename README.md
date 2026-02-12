@@ -183,3 +183,284 @@ Added `@typescript-eslint` parser and plugin for TS-aware linting.
 ```bash
 pnpm add -D typescript @types/react @types/react-dom @typescript-eslint/parser @typescript-eslint/eslint-plugin typescript-eslint
 ```
+
+---
+
+## State Management: Context API & Reducer
+
+This application uses React's **Context API** combined with the **useReducer** hook for global state management. This pattern provides a predictable way to manage user authentication state across the entire application.
+
+### Architecture Overview
+
+The state management is built on three key pieces:
+
+1. **Context** (`src/context/userContext.ts`) - Creates a React context for sharing state
+2. **Reducer** (`src/reducers/userReducer.ts`) - Defines how state transitions happen
+3. **Provider** (`src/App.tsx`) - Wraps the app and provides state to all components
+
+### How It Works: Step-by-Step
+
+#### Step 1: Define the Context
+
+The context is created in [src/context/userContext.ts](frontend/src/context/userContext.ts):
+
+```typescript
+import { createContext } from "react";
+
+export const UserContext = createContext<{
+  state: any;
+  dispatch: React.Dispatch<any>;
+}>({
+  state: null,
+  dispatch: () => null,
+});
+```
+
+**What this does:**
+
+- Creates a context object with TypeScript types
+- Defines the shape: `{ state, dispatch }`
+- `state` holds the current user data (or `null` if not logged in)
+- `dispatch` is a function to trigger state updates
+- Default values are provided but will be overridden by the Provider
+
+#### Step 2: Define the Reducer
+
+The reducer is defined in [src/reducers/userReducer.ts](frontend/src/reducers/userReducer.ts):
+
+```typescript
+export const initialState: any = null;
+
+export const reducer = (state: any, action: any) => {
+  if (action.type == "USER") {
+    return action.payload;
+  }
+  if (action.type == "LOGOUT") {
+    return null;
+  }
+  if (action.type == "UPDATE") {
+    return {
+      ...state,
+      following: action.payload.following,
+      followers: action.payload.followers,
+    };
+  }
+  return state;
+};
+```
+
+**What this does:**
+
+- `initialState`: Starting state is `null` (no user logged in)
+- `reducer`: A pure function that takes current `state` and an `action`, returns new state
+- **Actions:**
+  - `USER`: Sets the user data (used on login)
+  - `LOGOUT`: Clears user data (sets to `null`)
+  - `UPDATE`: Merges new following/followers data into existing state
+
+**Reducer Pattern:**
+
+```
+(currentState, action) => newState
+```
+
+#### Step 3: Setup the Provider
+
+In [src/App.tsx](frontend/src/App.tsx), the context provider is set up:
+
+```typescript
+import { useReducer, useEffect } from "react";
+import { UserContext } from "./context/userContext";
+import { reducer, initialState } from "./reducers/userReducer";
+
+function App() {
+  // Create state and dispatch function using useReducer
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Restore user from localStorage on app load
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      dispatch({ type: "USER", payload: JSON.parse(user) });
+    }
+  }, []);
+
+  return (
+    <UserContext.Provider value={{ state, dispatch }}>
+      <BrowserRouter>
+        <Navbar />
+        <CustomRouteConfig />
+      </BrowserRouter>
+    </UserContext.Provider>
+  );
+}
+```
+
+**What this does:**
+
+- `useReducer(reducer, initialState)` creates:
+  - `state`: Current state value
+  - `dispatch`: Function to send actions to the reducer
+- `useEffect` runs once on mount, checks localStorage for saved user data
+- If user exists in localStorage, dispatches `USER` action to restore login state
+- `UserContext.Provider` wraps the entire app, making `{ state, dispatch }` available everywhere
+
+#### Step 4: Consuming the Context
+
+Components access the context using `useContext`:
+
+**Example: Login Component** ([src/pages/Login.tsx](frontend/src/pages/Login.tsx))
+
+```typescript
+import { useContext } from "react";
+import { UserContext } from "../context/userContext";
+
+const Login = () => {
+  const { state, dispatch } = useContext(UserContext);
+
+  const login = () => {
+    fetch("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        localStorage.setItem("jwt", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        // Update global state
+        dispatch({ type: "USER", payload: data.user });
+        navigate("/");
+      });
+  };
+};
+```
+
+**What this does:**
+
+- `useContext(UserContext)` extracts `state` and `dispatch`
+- On successful login, saves to localStorage
+- Calls `dispatch({ type: "USER", payload: data.user })` to update global state
+- All components listening to `UserContext` will re-render with new user data
+
+**Example: Navbar Component** ([src/components/NavBar.tsx](frontend/src/components/NavBar.tsx))
+
+```typescript
+const Navbar = () => {
+  const { state, dispatch } = useContext(UserContext);
+
+  const renderList = () => {
+    if (state) {
+      // User is logged in - show Profile, Create Post, Logout
+      return [
+        <li key="profile"><Link to="/profile">Profile</Link></li>,
+        <li key="logout">
+          <button onClick={() => {
+            localStorage.clear();
+            dispatch({ type: "LOGOUT" });
+            navigate("/login");
+          }}>
+            Logout
+          </button>
+        </li>
+      ];
+    } else {
+      // User not logged in - show Login, SignUp
+      return [
+        <li key="login"><Link to="/login">Log In</Link></li>,
+        <li key="signup"><Link to="/signup">Sign Up</Link></li>
+      ];
+    }
+  };
+
+  return <nav>{renderList()}</nav>;
+};
+```
+
+**What this does:**
+
+- Reads `state` to check if user is logged in
+- Conditionally renders different navigation items based on auth state
+- On logout, clears localStorage and dispatches `LOGOUT` action
+- Navbar automatically updates when state changes
+
+### Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        App.tsx                          │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ useReducer(reducer, initialState)                 │  │
+│  │   ↓                                               │  │
+│  │ [state, dispatch]                                 │  │
+│  └───────────────────────────────────────────────────┘  │
+│                          ↓                              │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ <UserContext.Provider value={{state, dispatch}}>  │  │
+│  │   └─ All child components                         │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+        ┌─────────────────┴─────────────────┐
+        ↓                                   ↓
+┌───────────────┐                   ┌──────────────┐
+│  Login.tsx    │                   │  Navbar.tsx  │
+├───────────────┤                   ├──────────────┤
+│ useContext()  │                   │ useContext() │
+│   ↓           │                   │   ↓          │
+│ {state,       │                   │ {state,      │
+│  dispatch}    │                   │  dispatch}   │
+│   ↓           │                   │   ↓          │
+│ dispatch({    │                   │ if (state)   │
+│  type:"USER", │                   │   show menu  │
+│  payload:user │                   │ else         │
+│ })            │                   │   show login │
+└───────────────┘                   └──────────────┘
+        ↓
+┌─────────────────────────────────┐
+│     userReducer.ts              │
+├─────────────────────────────────┤
+│ reducer(state, action)          │
+│   if action.type == "USER"      │
+│     return action.payload       │
+│   if action.type == "LOGOUT"    │
+│     return null                 │
+└─────────────────────────────────┘
+        ↓
+  New state updates all
+  subscribed components
+```
+
+### Key Benefits
+
+1. **Single Source of Truth**: User state lives in one place, preventing inconsistencies
+2. **Predictable Updates**: All state changes go through the reducer with explicit action types
+3. **Easy Debugging**: Action types make it clear what caused each state change
+4. **Persistent Sessions**: localStorage integration survives page refreshes
+5. **Automatic UI Updates**: Components re-render automatically when state changes
+
+### Common Patterns
+
+**Dispatch an action:**
+
+```typescript
+dispatch({ type: "USER", payload: userData });
+```
+
+**Read current state:**
+
+```typescript
+const { state } = useContext(UserContext);
+if (state) {
+  // User is logged in
+  console.log(state.fullName);
+}
+```
+
+**Logout pattern:**
+
+```typescript
+localStorage.clear();
+dispatch({ type: "LOGOUT" });
+```
+
+This architecture provides a solid foundation for managing authentication state in a React application without requiring external libraries like Redux.
