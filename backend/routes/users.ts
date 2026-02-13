@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
+import { deleteCloudinaryImage } from '../utils/cloudinary.js';
 
 const router: Router = express.Router();
 const prisma = new PrismaClient();
@@ -133,6 +134,15 @@ router.patch('/profile/photo', authenticateToken, async (req, res) => {
 
     if (!profilePicUrl || typeof profilePicUrl !== 'string') {
       return res.status(400).json({ error: 'Profile photo URL is required' });
+    }
+
+    // Delete old profile photo from Cloudinary
+    const currentUser = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { profilePicUrl: true },
+    });
+    if (currentUser?.profilePicUrl) {
+      await deleteCloudinaryImage(currentUser.profilePicUrl);
     }
 
     const updatedUser = await prisma.user.update({

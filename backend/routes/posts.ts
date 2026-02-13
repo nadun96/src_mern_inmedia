@@ -1,6 +1,7 @@
 import express, { Router, type Request, type Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, optionalAuthentication } from '../middleware/auth.js';
+import { deleteCloudinaryImage } from '../utils/cloudinary.js';
 
 const router: Router = express.Router();
 const prisma = new PrismaClient();
@@ -887,6 +888,11 @@ router.put('/:id', authenticateToken, async (request: Request, response: Respons
       return;
     }
 
+    // Delete old image from Cloudinary if image is being changed
+    if (image !== undefined && image !== post.image && post.image) {
+      await deleteCloudinaryImage(post.image);
+    }
+
     // Update post
     const updatedPost = await prisma.post.update({
       where: { id: id as string },
@@ -981,6 +987,11 @@ router.delete('/:id', authenticateToken, async (request: Request, response: Resp
     if (post.authorId !== request.user!.userId) {
       response.status(403).json({ error: 'Unauthorized - only author can delete this post' });
       return;
+    }
+
+    // Delete image from Cloudinary
+    if (post.image) {
+      await deleteCloudinaryImage(post.image);
     }
 
     // Delete post
