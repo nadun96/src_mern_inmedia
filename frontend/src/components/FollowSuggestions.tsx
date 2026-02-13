@@ -81,14 +81,21 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({
       style={{
         backgroundColor: "#f5f5f5",
         borderRadius: "8px",
-        padding: "20px",
-        marginBottom: "20px",
-        marginTop: "20px",
+        padding: "16px",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
       }}
     >
-      <h5 style={{ marginTop: "0", marginBottom: "15px" }}>
-        Suggested Users to Follow
-      </h5>
+      <h6
+        style={{
+          marginTop: "0",
+          marginBottom: "15px",
+          fontSize: "16px",
+          fontWeight: "600",
+          color: "#333",
+        }}
+      >
+        Suggested For You
+      </h6>
       <div
         style={{
           display: "flex",

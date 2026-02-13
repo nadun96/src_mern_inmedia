@@ -23,6 +23,10 @@ interface CommentsSectionProps {
   commentCount: number;
   currentUserId?: string;
   onCommentAdded: () => void;
+  onCommentsChanged?: (
+    updatedComments: Comment[],
+    newCommentCount: number,
+  ) => void;
 }
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({
@@ -31,6 +35,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   commentCount,
   currentUserId,
   onCommentAdded,
+  onCommentsChanged,
 }) => {
   const [showComments, setShowComments] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
@@ -78,8 +83,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       const result = await response.json();
 
       // Add the new comment to the top of the list
-      setAllComments([result.comment, ...allComments]);
+      const updatedComments = [result.comment, ...allComments];
+      setAllComments(updatedComments);
       setCommentText("");
+
+      // Notify parent with updated comments
+      if (onCommentsChanged) {
+        onCommentsChanged(updatedComments, commentCount + 1);
+      }
       onCommentAdded();
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -108,9 +119,15 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         throw new Error("Failed to delete comment");
       }
 
-      setAllComments(allComments.filter((c) => c.id !== commentId));
+      const updatedComments = allComments.filter((c) => c.id !== commentId);
+      setAllComments(updatedComments);
       setShowDeleteConfirm(false);
       setPendingDeleteCommentId(null);
+
+      // Notify parent with updated comments
+      if (onCommentsChanged) {
+        onCommentsChanged(updatedComments, Math.max(0, commentCount - 1));
+      }
       onCommentAdded();
       M.toast({ html: "Comment deleted successfully", classes: "green" });
     } catch (error) {

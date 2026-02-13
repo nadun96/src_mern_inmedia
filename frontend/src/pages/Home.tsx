@@ -125,28 +125,69 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="home-container">
-        <p style={{ textAlign: "center", padding: "20px" }}>Loading posts...</p>
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "20px",
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ flex: "0 0 300px" }}>
+          <FollowSuggestions currentUserId={state?.id} />
+        </div>
+        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ textAlign: "center", padding: "20px" }}>
+            Loading posts...
+          </p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="home-container">
-        <p style={{ textAlign: "center", padding: "20px", color: "red" }}>
-          {error}
-        </p>
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "20px",
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ flex: "0 0 300px" }}>
+          <FollowSuggestions currentUserId={state?.id} />
+        </div>
+        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ textAlign: "center", padding: "20px", color: "red" }}>
+            {error}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <div className="home-container">
-        <p style={{ textAlign: "center", padding: "20px" }}>
-          No posts yet. <Link to="/create-post">Create one!</Link>
-        </p>
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "20px",
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ flex: "0 0 300px" }}>
+          <FollowSuggestions currentUserId={state?.id} />
+        </div>
+        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ textAlign: "center", padding: "20px" }}>
+            No posts yet. <Link to="/create-post">Create one!</Link>
+          </p>
+        </div>
       </div>
     );
   }
@@ -156,38 +197,70 @@ const Home = () => {
     fetchPosts(1);
   };
 
+  const handleCommentUpdate = (postId: string, updatedPost: Post) => {
+    // Update only the specific post instead of reloading all posts
+    setPosts((prevPosts) =>
+      prevPosts.map((post) => (post.id === postId ? updatedPost : post)),
+    );
+  };
+
   return (
-    <div className="home-container">
-      <FollowSuggestions currentUserId={state?.id} />
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          id={post.id}
-          title={post.title}
-          body={post.body}
-          image={post.image}
-          author={post.author}
-          createdAt={post.createdAt}
-          updatedAt={post.updatedAt}
-          likeCount={post.likeCount}
-          isLiked={post.isLiked}
-          likedBy={post.likedBy}
-          comments={post.comments}
-          commentCount={post.commentCount}
-          currentUserId={state?.id}
-          onPostUpdate={handlePostUpdate}
-        />
-      ))}
-      {loadingMore && (
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          <p>Loading more posts...</p>
-        </div>
-      )}
-      {!hasNextPage && posts.length > 0 && (
-        <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
-          <p>No more posts to load</p>
-        </div>
-      )}
+    <div
+      style={{
+        display: "flex",
+        gap: "20px",
+        padding: "20px",
+        maxWidth: "1400px",
+        margin: "0 auto",
+      }}
+    >
+      {/* Left Sidebar */}
+      <div
+        style={{
+          flex: "0 0 300px",
+          position: "sticky",
+          top: "20px",
+          height: "fit-content",
+        }}
+      >
+        <FollowSuggestions currentUserId={state?.id} />
+      </div>
+
+      {/* Main Content */}
+      <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            id={post.id}
+            title={post.title}
+            body={post.body}
+            image={post.image}
+            author={post.author}
+            createdAt={post.createdAt}
+            updatedAt={post.updatedAt}
+            likeCount={post.likeCount}
+            isLiked={post.isLiked}
+            likedBy={post.likedBy}
+            comments={post.comments}
+            commentCount={post.commentCount}
+            currentUserId={state?.id}
+            onPostUpdate={handlePostUpdate}
+            onCommentUpdate={(updatedPost) =>
+              handleCommentUpdate(post.id, updatedPost)
+            }
+          />
+        ))}
+        {loadingMore && (
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            <p>Loading more posts...</p>
+          </div>
+        )}
+        {!hasNextPage && posts.length > 0 && (
+          <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
+            <p>No more posts to load</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

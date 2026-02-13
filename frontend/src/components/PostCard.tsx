@@ -34,6 +34,7 @@ interface PostCardProps {
   commentCount: number;
   currentUserId?: string;
   onPostUpdate: () => void;
+  onCommentUpdate?: (updatedPost: any) => void;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -50,10 +51,13 @@ const PostCard: React.FC<PostCardProps> = ({
   commentCount,
   currentUserId,
   onPostUpdate,
+  onCommentUpdate,
 }) => {
   const [localLikeCount, setLocalLikeCount] = useState(likeCount);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const [localLikedBy, setLocalLikedBy] = useState(likedBy);
+  const [localComments, setLocalComments] = useState(comments);
+  const [localCommentCount, setLocalCommentCount] = useState(commentCount);
 
   const handleLikeChange = () => {
     if (localIsLiked) {
@@ -76,6 +80,32 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleCommentAdded = () => {
     onPostUpdate();
+  };
+
+  const handleCommentsChanged = (
+    updatedComments: any[],
+    newCommentCount: number,
+  ) => {
+    setLocalComments(updatedComments);
+    setLocalCommentCount(newCommentCount);
+
+    // Notify parent with updated post data
+    if (onCommentUpdate) {
+      onCommentUpdate({
+        id,
+        title,
+        body,
+        image,
+        author,
+        createdAt,
+        updatedAt: new Date().toISOString(),
+        likeCount: localLikeCount,
+        isLiked: localIsLiked,
+        likedBy: localLikedBy,
+        comments: updatedComments,
+        commentCount: newCommentCount,
+      });
+    }
   };
 
   return (
@@ -119,10 +149,11 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Comments Section */}
         <CommentsSection
           postId={id}
-          comments={comments}
-          commentCount={commentCount}
+          comments={localComments}
+          commentCount={localCommentCount}
           currentUserId={currentUserId}
           onCommentAdded={handleCommentAdded}
+          onCommentsChanged={handleCommentsChanged}
         />
       </div>
     </div>
