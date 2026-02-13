@@ -59,6 +59,7 @@ router.get('/profile/:userId', async (req, res) => {
         id: true,
         name: true,
         email: true,
+        profilePicUrl: true,
         followers: {
           select: {
             followerId: true,
@@ -90,6 +91,65 @@ router.get('/profile/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+/**
+ * @swagger
+ * /users/profile/photo:
+ *   patch:
+ *     summary: Update current user's profile photo
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePicUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile photo updated
+ *       400:
+ *         description: Missing profile photo URL
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Failed to update profile photo
+ */
+router.patch('/profile/photo', authenticateToken, async (req, res) => {
+  try {
+    const currentUserId = req.user?.userId;
+    const { profilePicUrl } = req.body;
+
+    if (!currentUserId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    if (!profilePicUrl || typeof profilePicUrl !== 'string') {
+      return res.status(400).json({ error: 'Profile photo URL is required' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: currentUserId },
+      data: { profilePicUrl },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profilePicUrl: true,
+      },
+    });
+
+    res.json({ user: updatedUser });
+  } catch (error) {
+    console.error('Error updating profile photo:', error);
+    res.status(500).json({ error: 'Failed to update profile photo' });
   }
 });
 
@@ -476,6 +536,7 @@ router.get('/suggestions/recommended', authenticateToken, async (req, res) => {
         id: true,
         name: true,
         email: true,
+        profilePicUrl: true,
         followers: {
           select: {
             followerId: true,

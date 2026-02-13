@@ -31,6 +31,12 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
 
   const isOwnProfile = !userId || userId === state?.id;
   const profileId = userId || state?.id;
@@ -134,15 +140,212 @@ const Profile = () => {
     }
   };
 
+  const handleProfileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "inmedia");
+    formData.append("cloud_name", "dkxb9gklg");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/dkxb9gklg/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Cloudinary upload failed");
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
+  const handleProfilePhotoUpload = async () => {
+    if (!profileImage) {
+      M.toast({ html: "Please upload an image", classes: "red" });
+      return;
+    }
+
+    const token = localStorage.getItem("jwt");
+    if (!token) {
+      M.toast({ html: "Please login first", classes: "red" });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      M.toast({ html: "Uploading image...", classes: "blue" });
+
+      const imageUrl = await uploadToCloudinary(profileImage);
+
+      const response = await fetch("/users/profile/photo", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profilePicUrl: imageUrl }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to update profile photo");
+      }
+
+      if (data.user?.profilePicUrl) {
+        setProfile((prev) =>
+          prev ? { ...prev, profilePicUrl: data.user.profilePicUrl } : prev,
+        );
+
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          const updatedUser = {
+            ...parsedUser,
+            profilePicUrl: data.user.profilePicUrl,
+          };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          dispatch({ type: "USER", payload: updatedUser });
+        }
+      }
+
+      setProfileImage(null);
+      setProfileImagePreview("");
+      setShowUploader(false);
+      M.toast({ html: "Profile photo updated!", classes: "green" });
+    } catch (error) {
+      console.error("Error updating profile photo:", error);
+      M.toast({ html: "Failed to update profile photo", classes: "red" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handlePhotoMenuOpen = () => {
+    if (!profile?.profilePicUrl && !isOwnProfile) {
+      return;
+    }
+    setShowPhotoMenu(true);
+  };
+
+  const handlePhotoMenuClose = () => {
+    setShowPhotoMenu(false);
+  };
+
+  const handleViewPhoto = () => {
+    setShowPhotoMenu(false);
+    setShowPhotoViewer(true);
+  };
+
+  const handleUpdatePhoto = () => {
+    setShowPhotoMenu(false);
+    setShowUploader(true);
+  };
+
+  const handleCloseViewer = () => {
+    setShowPhotoViewer(false);
+  };
+
   return (
     <div className="main-container">
       <div className="profile-container">
         <div>
           <img
-            style={{ width: "166px", height: "166px", borderRadius: "83px" }}
+            className="profile-image"
             src={profile?.profilePicUrl || "https://via.placeholder.com/166"}
             alt="Profile"
+            onClick={handlePhotoMenuOpen}
           />
+          {showPhotoMenu && (
+            <div className="photo-menu-overlay" onClick={handlePhotoMenuClose}>
+              <div className="photo-menu" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                  onClick={handleViewPhoto}
+                >
+                  View Photo
+                </button>
+                {isOwnProfile && (
+                  <button
+                    className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                    onClick={handleUpdatePhoto}
+                  >
+                    Update Photo
+                  </button>
+                )}
+                <button
+                  className="btn waves-effect waves-light grey"
+                  onClick={handlePhotoMenuClose}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {showPhotoViewer && (
+            <div className="photo-viewer-overlay" onClick={handleCloseViewer}>
+              <img
+                className="photo-viewer-image"
+                src={
+                  profile?.profilePicUrl || "https://via.placeholder.com/166"
+                }
+                alt="Profile"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          {isOwnProfile && showUploader && (
+            <div className="profile-upload">
+              <div className="file-field input-field">
+                <div className="btn #64b5f6 blue darken-1">
+                  <span>Upload Photo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileFileChange}
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="file-path-wrapper">
+                  <input
+                    className="file-path validate"
+                    type="text"
+                    value={profileImage?.name || ""}
+                    readOnly
+                  />
+                </div>
+              </div>
+              {profileImagePreview && (
+                <img
+                  src={profileImagePreview}
+                  alt="Profile preview"
+                  className="profile-preview"
+                />
+              )}
+              <button
+                className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                onClick={handleProfilePhotoUpload}
+                disabled={isUploading}
+              >
+                {isUploading ? "Uploading..." : "Save Photo"}
+              </button>
+            </div>
+          )}
         </div>
         <div className="details-section">
           <h4>{profile ? profile.name : "Loading..."}</h4>

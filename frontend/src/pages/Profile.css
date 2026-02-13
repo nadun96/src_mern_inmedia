@@ -8,6 +8,57 @@
     margin: 20px 0px;
     border-bottom: 1px solid grey;
 }
+.profile-image{
+    width: 166px;
+    height: 166px;
+    border-radius: 83px;
+    object-fit: cover;
+    cursor: pointer;
+}
+.profile-upload{
+    margin-top: 12px;
+    max-width: 260px;
+}
+.profile-preview{
+    margin: 10px 0;
+    width: 100%;
+    max-height: 180px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+.photo-menu-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.photo-menu{
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 220px;
+}
+.photo-viewer-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.photo-viewer-image{
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 10px;
+    object-fit: cover;
+}
 .details-section{
    width: 300px;
 }

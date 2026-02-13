@@ -140,6 +140,7 @@ router.post('/signup', async (request: Request, response: Response) => {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
+        profilePicUrl: newUser.profilePicUrl,
         followers: followers.map(f => f.followerId),
         following: following.map(f => f.followingId)
       }
@@ -265,6 +266,7 @@ router.post('/login', async (request: Request, response: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        profilePicUrl: user.profilePicUrl,
         followers: followers.map(f => f.followerId),
         following: following.map(f => f.followingId)
       }
