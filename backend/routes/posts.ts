@@ -50,9 +50,47 @@ async function addLikeInfo(post: any, userId?: string, includeLikedBy: boolean =
   };
 }
 
-// Helper function to add like information to multiple posts
-async function addLikeInfoToPosts(posts: any[], userId?: string, includeLikedBy: boolean = true) {
-  return Promise.all(posts.map(post => addLikeInfo(post, userId, includeLikedBy)));
+// Helper function to add comments to a post
+async function addCommentsToPost(post: any, limit: number = 3) {
+  const [comments, commentCount] = await Promise.all([
+    prisma.comment.findMany({
+      where: { postId: post.id },
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    }),
+    prisma.comment.count({ where: { postId: post.id } })
+  ]);
+
+  return {
+    ...post,
+    comments,
+    commentCount
+  };
+}
+
+// Helper function to add like and comment information to a post
+async function addPostMetadata(post: any, userId?: string, includeLikedBy: boolean = true, includeComments: boolean = true) {
+  let enrichedPost = await addLikeInfo(post, userId, includeLikedBy);
+  
+  if (includeComments) {
+    enrichedPost = await addCommentsToPost(enrichedPost, 3);
+  }
+  
+  return enrichedPost;
+}
+
+// Helper function to add like and comment information to multiple posts
+async function addPostMetadataToPosts(posts: any[], userId?: string, includeLikedBy: boolean = true, includeComments: boolean = true) {
+  return Promise.all(posts.map(post => addPostMetadata(post, userId, includeLikedBy, includeComments)));
 }
 
 /**
@@ -77,7 +115,7 @@ async function addLikeInfoToPosts(posts: any[], userId?: string, includeLikedBy:
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: List of posts with author details, like count, who liked, and pagination info
+ *         description: List of posts with author details, like count, who liked, comments, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -122,6 +160,38 @@ async function addLikeInfoToPosts(posts: any[], userId?: string, includeLikedBy:
  *                               type: string
  *                             email:
  *                               type: string
+ *                       commentCount:
+ *                         type: integer
+ *                         description: Total number of comments on the post
+ *                       comments:
+ *                         type: array
+ *                         description: Recent comments on the post (up to 3 most recent)
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             content:
+ *                               type: string
+ *                             authorId:
+ *                               type: string
+ *                             postId:
+ *                               type: string
+ *                             createdAt:
+ *                               type: string
+ *                               format: date-time
+ *                             updatedAt:
+ *                               type: string
+ *                               format: date-time
+ *                             author:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 name:
+ *                                   type: string
+ *                                 email:
+ *                                   type: string
  *                       author:
  *                         type: object
  *                         properties:
@@ -182,13 +252,13 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
       prisma.post.count()
     ]);
 
-    // Add like information to each post
-    const postsWithLikes = await addLikeInfoToPosts(posts, request.user?.userId);
+    // Add like and comment information to each post
+    const enrichedPosts = await addPostMetadataToPosts(posts, request.user?.userId);
 
     const totalPages = Math.ceil(total / limit);
 
     response.status(200).json({
-      data: postsWithLikes,
+      data: enrichedPosts,
       pagination: {
         page,
         limit,
@@ -233,7 +303,7 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: User's posts with like count, who liked, and pagination info
+ *         description: User's posts with like count, who liked, comments, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -278,6 +348,38 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
  *                               type: string
  *                             email:
  *                               type: string
+ *                       commentCount:
+ *                         type: integer
+ *                         description: Total number of comments on the post
+ *                       comments:
+ *                         type: array
+ *                         description: Recent comments on the post (up to 3 most recent)
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             content:
+ *                               type: string
+ *                             authorId:
+ *                               type: string
+ *                             postId:
+ *                               type: string
+ *                             createdAt:
+ *                               type: string
+ *                               format: date-time
+ *                             updatedAt:
+ *                               type: string
+ *                               format: date-time
+ *                             author:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 name:
+ *                                   type: string
+ *                                 email:
+ *                                   type: string
  *                       author:
  *                         type: object
  *                         properties:
@@ -372,13 +474,13 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
       prisma.post.count({ where: { authorId: targetUserId } })
     ]);
 
-    // Add like information to each post
-    const postsWithLikes = await addLikeInfoToPosts(posts, request.user?.userId);
+    // Add like and comment information to each post
+    const enrichedPosts = await addPostMetadataToPosts(posts, request.user?.userId);
 
     const totalPages = Math.ceil(total / limit);
 
     response.status(200).json({
-      data: postsWithLikes,
+      data: enrichedPosts,
       pagination: {
         page,
         limit,
@@ -410,7 +512,7 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *         description: Post ID
  *     responses:
  *       200:
- *         description: Post details with author information, like count, who liked, and liked status
+ *         description: Post details with author information, like count, who liked, comments, and liked status
  *         content:
  *           application/json:
  *             schema:
@@ -450,6 +552,38 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *                         type: string
  *                       email:
  *                         type: string
+ *                 commentCount:
+ *                   type: integer
+ *                   description: Total number of comments on the post
+ *                 comments:
+ *                   type: array
+ *                   description: Recent comments on the post (up to 3 most recent)
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       authorId:
+ *                         type: string
+ *                       postId:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       author:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
  *                 author:
  *                   type: object
  *                   properties:
@@ -498,10 +632,10 @@ router.get('/:id', optionalAuthentication, async (request: Request, response: Re
       return;
     }
 
-    // Add like information
-    const postWithLikes = await addLikeInfo(post, request.user?.userId);
+    // Add like and comment information
+    const enrichedPost = await addPostMetadata(post, request.user?.userId);
 
-    response.status(200).json(postWithLikes);
+    response.status(200).json(enrichedPost);
   } catch (error) {
     console.error('Get post error:', error);
     response.status(500).json({ error: 'Internal server error' });
