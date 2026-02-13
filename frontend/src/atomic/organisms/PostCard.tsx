@@ -40,6 +40,7 @@ interface PostCardProps {
   enableEdit?: boolean;
   onPostUpdate: () => void;
   onCommentUpdate?: (updatedPost: any) => void;
+  onUnfollow?: (authorId: string) => void;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -58,6 +59,7 @@ const PostCard: React.FC<PostCardProps> = ({
   enableEdit = false,
   onPostUpdate,
   onCommentUpdate,
+  onUnfollow,
 }) => {
   const [localLikeCount, setLocalLikeCount] = useState(likeCount);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
@@ -231,9 +233,31 @@ const PostCard: React.FC<PostCardProps> = ({
     <div className="card home-card">
       {/* Post Header */}
       <div style={{ padding: "10px" }}>
-        <h5 style={{ margin: "0" }}>
-          <strong>{author?.name || "Anonymous"}</strong>
-        </h5>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <h5 style={{ margin: "0" }}>
+            <strong>{author?.name || "Anonymous"}</strong>
+          </h5>
+          {onUnfollow && !isAuthor && (
+            <Button
+              color="red"
+              onClick={() => onUnfollow(author.id)}
+              style={{
+                padding: "0 12px",
+                height: "28px",
+                lineHeight: "28px",
+                fontSize: "12px",
+              }}
+            >
+              Unfollow
+            </Button>
+          )}
+        </div>
         <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#999" }}>
           {new Date(createdAt).toLocaleDateString()} at{" "}
           {new Date(createdAt).toLocaleTimeString([], {

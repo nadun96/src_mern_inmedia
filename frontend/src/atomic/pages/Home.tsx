@@ -5,6 +5,7 @@ import { UserContext } from "../../context/userContext";
 import PostCard from "../organisms/PostCard";
 import FollowSuggestions from "../organisms/FollowSuggestions";
 import FeedLayout from "../templates/FeedLayout";
+import M from "materialize-css";
 
 interface User {
   id: string;
@@ -164,6 +165,29 @@ const Home = () => {
     );
   };
 
+  const handleUnfollow = async (authorId: string) => {
+    try {
+      const token = localStorage.getItem("jwt");
+      const response = await fetch(`/users/${authorId}/follow`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to unfollow user");
+      }
+
+      // Remove all posts by this author from the feed
+      setPosts((prev) => prev.filter((post) => post.authorId !== authorId));
+      M.toast({ html: "Unfollowed successfully", classes: "green" });
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      M.toast({ html: "Failed to unfollow", classes: "red" });
+    }
+  };
+
   return (
     <FeedLayout sidebar={<FollowSuggestions currentUserId={state?.id} />}>
       {posts.map((post) => (
@@ -187,6 +211,7 @@ const Home = () => {
           onCommentUpdate={(updatedPost) =>
             handleCommentUpdate(post.id, updatedPost)
           }
+          onUnfollow={handleUnfollow}
         />
       ))}
       {loadingMore && (
