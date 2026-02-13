@@ -7,6 +7,7 @@ import { specs } from './swagger.js';
 import authRouter from './routes/auth.js';
 import postsRouter from './routes/posts.js';
 import commentsRouter from './routes/comments.js';
+import usersRouter from './routes/users.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 app.use('/auth', authRouter);
 app.use('/posts', postsRouter);
 app.use('/comments', commentsRouter);
+app.use('/users', usersRouter);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Welcome to the Express server!');

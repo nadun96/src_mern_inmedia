@@ -119,6 +119,17 @@ router.post('/signup', async (request: Request, response: Response) => {
       }
     });
 
+    // Fetch followers and following
+    const followers = await prisma.follow.findMany({
+      where: { followingId: newUser.id },
+      select: { followerId: true }
+    });
+
+    const following = await prisma.follow.findMany({
+      where: { followerId: newUser.id },
+      select: { followingId: true }
+    });
+
     // Generate JWT token
     const token = generateToken(newUser.id, newUser.email);
 
@@ -128,7 +139,9 @@ router.post('/signup', async (request: Request, response: Response) => {
       user: {
         id: newUser.id,
         name: newUser.name,
-        email: newUser.email
+        email: newUser.email,
+        followers: followers.map(f => f.followerId),
+        following: following.map(f => f.followingId)
       }
     });
   } catch (error) {
@@ -234,13 +247,26 @@ router.post('/login', async (request: Request, response: Response) => {
     // Generate JWT token
     const token = generateToken(user.id, user.email);
 
+    // Fetch followers and following
+    const followers = await prisma.follow.findMany({
+      where: { followingId: user.id },
+      select: { followerId: true }
+    });
+
+    const following = await prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true }
+    });
+
     response.status(200).json({
       message: 'Login successful',
       token,
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        followers: followers.map(f => f.followerId),
+        following: following.map(f => f.followingId)
       }
     });
   } catch (error) {

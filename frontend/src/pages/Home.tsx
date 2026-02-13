@@ -3,6 +3,7 @@ import "./Home.css";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../context/userContext";
 import PostCard from "../components/PostCard";
+import FollowSuggestions from "../components/FollowSuggestions";
 
 interface User {
   id: string;
@@ -157,6 +158,7 @@ const Home = () => {
 
   return (
     <div className="home-container">
+      <FollowSuggestions currentUserId={state?.id} />
       {posts.map((post) => (
         <PostCard
           key={post.id}

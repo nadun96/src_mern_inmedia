@@ -21,6 +21,8 @@ model User {
   posts     Post[]
   likes     Like[]
   comments  Comment[]
+  followers Follow[]  @relation("followers")
+  following Follow[]  @relation("following")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -58,4 +60,15 @@ model Comment {
   postId    String   @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Follow {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  follower    User     @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String   @db.ObjectId
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String   @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
 }
