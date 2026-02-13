@@ -19,12 +19,11 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({
   currentUserId,
 }) => {
   const [suggestions, setSuggestions] = useState<SuggestedUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!currentUserId);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!currentUserId) {
-      setLoading(false);
       return;
     }
 
