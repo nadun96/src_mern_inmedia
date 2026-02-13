@@ -244,6 +244,7 @@ const Home = () => {
             comments={post.comments}
             commentCount={post.commentCount}
             currentUserId={state?.id}
+            enableEdit={false}
             onPostUpdate={handlePostUpdate}
             onCommentUpdate={(updatedPost) =>
               handleCommentUpdate(post.id, updatedPost)

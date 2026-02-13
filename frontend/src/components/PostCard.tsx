@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import LikesSection from "./LikesSection";
 import CommentsSection from "./CommentsSection";
+import M from "materialize-css";
 
 interface User {
   id: string;
@@ -33,6 +34,7 @@ interface PostCardProps {
   comments: Comment[];
   commentCount: number;
   currentUserId?: string;
+  enableEdit?: boolean;
   onPostUpdate: () => void;
   onCommentUpdate?: (updatedPost: any) => void;
 }
@@ -50,6 +52,7 @@ const PostCard: React.FC<PostCardProps> = ({
   comments,
   commentCount,
   currentUserId,
+  enableEdit = false,
   onPostUpdate,
   onCommentUpdate,
 }) => {
@@ -58,6 +61,16 @@ const PostCard: React.FC<PostCardProps> = ({
   const [localLikedBy, setLocalLikedBy] = useState(likedBy);
   const [localComments, setLocalComments] = useState(comments);
   const [localCommentCount, setLocalCommentCount] = useState(commentCount);
+  const [localTitle, setLocalTitle] = useState(title);
+  const [localBody, setLocalBody] = useState(body);
+  const [localImage, setLocalImage] = useState(image);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const [editBody, setEditBody] = useState(body);
+  const [editImageUrl, setEditImageUrl] = useState(image);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleLikeChange = () => {
     if (localIsLiked) {
@@ -108,6 +121,131 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
+  const isAuthor = !!currentUserId && author?.id === currentUserId;
+  const canEdit = enableEdit && isAuthor;
+
+  const handleEditStart = () => {
+    setEditTitle(localTitle);
+    setEditBody(localBody);
+    setEditImageUrl(localImage);
+    setEditImageFile(null);
+    setEditImagePreview("");
+    setIsEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditImageFile(null);
+    setEditImagePreview("");
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "inmedia");
+    formData.append("cloud_name", "dkxb9gklg");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/dkxb9gklg/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Cloudinary upload failed");
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
+  const handleEditSave = async () => {
+    if (!editTitle.trim() || !editBody.trim()) {
+      M.toast({ html: "Title and content are required", classes: "red" });
+      return;
+    }
+
+    const token = localStorage.getItem("jwt");
+    if (!token) {
+      M.toast({ html: "Please login first", classes: "red" });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      let finalImageUrl = editImageUrl;
+      if (editImageFile) {
+        M.toast({ html: "Uploading image...", classes: "blue" });
+        finalImageUrl = await uploadToCloudinary(editImageFile);
+      }
+
+      const response = await fetch(`/posts/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          body: editBody,
+          image: finalImageUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to update post");
+      }
+
+      setLocalTitle(editTitle);
+      setLocalBody(editBody);
+      setLocalImage(finalImageUrl);
+      setIsEditing(false);
+      setEditImageFile(null);
+      setEditImagePreview("");
+
+      if (onCommentUpdate) {
+        onCommentUpdate({
+          id,
+          title: editTitle,
+          body: editBody,
+          image: finalImageUrl,
+          author,
+          createdAt,
+          updatedAt: new Date().toISOString(),
+          likeCount: localLikeCount,
+          isLiked: localIsLiked,
+          likedBy: localLikedBy,
+          comments: localComments,
+          commentCount: localCommentCount,
+        });
+      }
+
+      M.toast({ html: "Post updated", classes: "green" });
+    } catch (error) {
+      console.error("Error updating post:", error);
+      M.toast({ html: "Failed to update post", classes: "red" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="card home-card">
       {/* Post Header */}
@@ -122,19 +260,98 @@ const PostCard: React.FC<PostCardProps> = ({
             minute: "2-digit",
           })}
         </p>
+        {canEdit && (
+          <div style={{ marginTop: "8px" }}>
+            {isEditing ? (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                  onClick={handleEditSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  className="btn waves-effect waves-light grey"
+                  onClick={handleEditCancel}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                onClick={handleEditStart}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Post Image */}
-      {image && (
+      {localImage && (
         <div className="card-image">
-          <img src={image} alt={title} />
+          <img src={localImage} alt={localTitle} />
         </div>
       )}
 
       {/* Post Content */}
       <div className="card-content">
-        <h6>{title}</h6>
-        <p>{body}</p>
+        {isEditing && canEdit ? (
+          <div>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="post title"
+            />
+            <input
+              type="text"
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+              placeholder="post content"
+            />
+            <div
+              className="file-field input-field"
+              style={{ marginTop: "10px" }}
+            >
+              <div className="btn #64b5f6 blue darken-1">
+                <span>Update Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditFileChange}
+                  disabled={isSaving}
+                />
+              </div>
+              <div className="file-path-wrapper">
+                <input
+                  className="file-path validate"
+                  type="text"
+                  value={editImageFile?.name || ""}
+                  readOnly
+                />
+              </div>
+            </div>
+            {editImagePreview && (
+              <div style={{ marginTop: "10px" }}>
+                <img
+                  src={editImagePreview}
+                  alt="Preview"
+                  style={{ maxWidth: "100%", maxHeight: "200px" }}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <h6>{localTitle}</h6>
+            <p>{localBody}</p>
+          </div>
+        )}
 
         {/* Likes Section */}
         <LikesSection

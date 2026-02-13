@@ -37,6 +37,14 @@ const Profile = () => {
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  const [showPostEditor, setShowPostEditor] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [postTitle, setPostTitle] = useState("");
+  const [postBody, setPostBody] = useState("");
+  const [postImageUrl, setPostImageUrl] = useState("");
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState("");
+  const [isPostSaving, setIsPostSaving] = useState(false);
 
   const isOwnProfile = !userId || userId === state?.id;
   const profileId = userId || state?.id;
@@ -261,6 +269,108 @@ const Profile = () => {
     setShowPhotoViewer(false);
   };
 
+  const handlePostClick = (post: Post) => {
+    if (!isOwnProfile) {
+      return;
+    }
+    setSelectedPost(post);
+    setPostTitle(post.title);
+    setPostBody(post.body);
+    setPostImageUrl(post.image);
+    setPostImageFile(null);
+    setPostImagePreview("");
+    setShowPostEditor(true);
+  };
+
+  const handlePostFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPostImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPostImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePostEditorClose = () => {
+    setShowPostEditor(false);
+    setSelectedPost(null);
+    setPostImageFile(null);
+    setPostImagePreview("");
+  };
+
+  const handlePostSave = async () => {
+    if (!selectedPost) {
+      return;
+    }
+
+    if (!postTitle.trim() || !postBody.trim()) {
+      M.toast({ html: "Title and content are required", classes: "red" });
+      return;
+    }
+
+    const token = localStorage.getItem("jwt");
+    if (!token) {
+      M.toast({ html: "Please login first", classes: "red" });
+      return;
+    }
+
+    try {
+      setIsPostSaving(true);
+
+      let finalImageUrl = postImageUrl;
+      if (postImageFile) {
+        M.toast({ html: "Uploading image...", classes: "blue" });
+        finalImageUrl = await uploadToCloudinary(postImageFile);
+      }
+
+      const response = await fetch(`/posts/${selectedPost.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: postTitle,
+          body: postBody,
+          image: finalImageUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to update post");
+      }
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === selectedPost.id
+            ? {
+                ...post,
+                title: postTitle,
+                body: postBody,
+                image: finalImageUrl,
+              }
+            : post,
+        ),
+      );
+
+      setShowPostEditor(false);
+      setSelectedPost(null);
+      setPostImageFile(null);
+      setPostImagePreview("");
+      M.toast({ html: "Post updated", classes: "green" });
+    } catch (error) {
+      console.error("Error updating post:", error);
+      M.toast({ html: "Failed to update post", classes: "red" });
+    } finally {
+      setIsPostSaving(false);
+    }
+  };
+
   return (
     <div className="main-container">
       <div className="profile-container">
@@ -385,13 +495,78 @@ const Profile = () => {
           posts.map((post) => (
             <img
               src={post.image}
-              className="post"
+              className={`post ${isOwnProfile ? "editable" : ""}`}
               alt={post.title}
               key={post.id}
+              onClick={() => handlePostClick(post)}
             />
           ))
         )}
       </div>
+      {showPostEditor && selectedPost && (
+        <div className="post-editor-overlay" onClick={handlePostEditorClose}>
+          <div className="post-editor" onClick={(e) => e.stopPropagation()}>
+            <h5>Edit Post</h5>
+            <input
+              type="text"
+              value={postTitle}
+              onChange={(e) => setPostTitle(e.target.value)}
+              placeholder="post title"
+            />
+            <input
+              type="text"
+              value={postBody}
+              onChange={(e) => setPostBody(e.target.value)}
+              placeholder="post content"
+            />
+            <div
+              className="file-field input-field"
+              style={{ marginTop: "10px" }}
+            >
+              <div className="btn #64b5f6 blue darken-1">
+                <span>Update Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePostFileChange}
+                  disabled={isPostSaving}
+                />
+              </div>
+              <div className="file-path-wrapper">
+                <input
+                  className="file-path validate"
+                  type="text"
+                  value={postImageFile?.name || ""}
+                  readOnly
+                />
+              </div>
+            </div>
+            {(postImagePreview || postImageUrl) && (
+              <img
+                src={postImagePreview || postImageUrl}
+                alt="Post preview"
+                className="post-edit-preview"
+              />
+            )}
+            <div className="post-editor-actions">
+              <button
+                className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                onClick={handlePostSave}
+                disabled={isPostSaving}
+              >
+                {isPostSaving ? "Saving..." : "Save"}
+              </button>
+              <button
+                className="btn waves-effect waves-light grey"
+                onClick={handlePostEditorClose}
+                disabled={isPostSaving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
