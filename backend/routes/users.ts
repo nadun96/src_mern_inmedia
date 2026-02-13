@@ -180,9 +180,37 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
 });
 
 /**
- * @route DELETE /users/:userId/follow
- * @desc Unfollow a user
- * @access Private
+ * @swagger
+ * /users/{userId}/follow:
+ *   delete:
+ *     summary: Unfollow a user
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user to unfollow
+ *     responses:
+ *       200:
+ *         description: Successfully unfollowed user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Not following this user
+ *       500:
+ *         description: Failed to unfollow user
  */
 router.delete('/:userId/follow', authenticateToken, async (req, res) => {
   try {
@@ -213,9 +241,49 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
 });
 
 /**
- * @route GET /users/:userId/followers
- * @desc Get list of followers for a user
- * @access Public
+ * @swagger
+ * /users/{userId}/followers:
+ *   get:
+ *     summary: Get list of followers for a user
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The user ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: List of followers successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
+ *                   type: integer
+ *       500:
+ *         description: Failed to fetch followers
  */
 router.get('/:userId/followers', async (req, res) => {
   try {
@@ -256,9 +324,49 @@ router.get('/:userId/followers', async (req, res) => {
 });
 
 /**
- * @route GET /users/:userId/following
- * @desc Get list of users that a user is following
- * @access Public
+ * @swagger
+ * /users/{userId}/following:
+ *   get:
+ *     summary: Get list of users that a user is following
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The user ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: List of following successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 pages:
+ *                   type: integer
+ *       500:
+ *         description: Failed to fetch following
  */
 router.get('/:userId/following', async (req, res) => {
   try {
@@ -299,9 +407,46 @@ router.get('/:userId/following', async (req, res) => {
 });
 
 /**
- * @route GET /users/suggestions
- * @desc Get suggested users to follow
- * @access Private
+ * @swagger
+ * /users/suggestions/recommended:
+ *   get:
+ *     summary: Get suggested users to follow
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of suggestions to return
+ *     responses:
+ *       200:
+ *         description: List of suggested users successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       followerCount:
+ *                         type: integer
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Failed to fetch suggestions
  */
 router.get('/suggestions/recommended', authenticateToken, async (req, res) => {
   try {
