@@ -45,6 +45,7 @@ const Profile = () => {
   const [postImageFile, setPostImageFile] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState("");
   const [isPostSaving, setIsPostSaving] = useState(false);
+  const [isPostDeleting, setIsPostDeleting] = useState(false);
 
   const isOwnProfile = !userId || userId === state?.id;
   const profileId = userId || state?.id;
@@ -371,6 +372,52 @@ const Profile = () => {
     }
   };
 
+  const handlePostDelete = async () => {
+    if (!selectedPost) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this post?");
+    if (!confirmed) {
+      return;
+    }
+
+    const token = localStorage.getItem("jwt");
+    if (!token) {
+      M.toast({ html: "Please login first", classes: "red" });
+      return;
+    }
+
+    try {
+      setIsPostDeleting(true);
+
+      const response = await fetch(`/posts/${selectedPost.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to delete post");
+      }
+
+      setPosts((prev) => prev.filter((post) => post.id !== selectedPost.id));
+      setShowPostEditor(false);
+      setSelectedPost(null);
+      setPostImageFile(null);
+      setPostImagePreview("");
+      M.toast({ html: "Post deleted", classes: "green" });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      M.toast({ html: "Failed to delete post", classes: "red" });
+    } finally {
+      setIsPostDeleting(false);
+    }
+  };
+
   return (
     <div className="main-container">
       <div className="profile-container">
@@ -550,16 +597,25 @@ const Profile = () => {
             )}
             <div className="post-editor-actions">
               <button
+                className="btn-flat post-delete-button"
+                onClick={handlePostDelete}
+                disabled={isPostSaving || isPostDeleting}
+                aria-label="Delete post"
+                title="Delete post"
+              >
+                <i className="material-icons">delete</i>
+              </button>
+              <button
                 className="btn waves-effect waves-light #64b5f6 blue darken-1"
                 onClick={handlePostSave}
-                disabled={isPostSaving}
+                disabled={isPostSaving || isPostDeleting}
               >
                 {isPostSaving ? "Saving..." : "Save"}
               </button>
               <button
                 className="btn waves-effect waves-light grey"
                 onClick={handlePostEditorClose}
-                disabled={isPostSaving}
+                disabled={isPostSaving || isPostDeleting}
               >
                 Cancel
               </button>
