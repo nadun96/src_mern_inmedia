@@ -1,9 +1,9 @@
 import { useEffect, useState, useContext } from "react";
 import "./Home.css";
 import { Link, useNavigate } from "react-router-dom";
-import { UserContext } from "../context/userContext";
-import PostCard from "../components/PostCard";
-import FollowSuggestions from "../components/FollowSuggestions";
+import { UserContext } from "../../context/userContext";
+import PostCard from "../organisms/PostCard";
+import FollowSuggestions from "../organisms/FollowSuggestions";
 
 interface User {
   id: string;

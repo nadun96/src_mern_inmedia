@@ -71,10 +71,35 @@
     flex-wrap: wrap;
     justify-content: space-around;
 }
-.post{
+.post-item{
+    position: relative;
     width: 30%;
+    margin-bottom: 10px;
+}
+.post{
+    width: 100%;
+    display: block;
 }
 .post.editable{
+    cursor: pointer;
+}
+.post-delete-icon{
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    color: #ffffff;
+    background: rgba(198, 40, 40, 0.9);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.post-delete-icon i{
+    font-size: 18px;
+}
+.post-item.editable{
     cursor: pointer;
 }
 .post-editor-overlay{

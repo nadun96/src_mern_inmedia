@@ -2,7 +2,7 @@ import React from "react";
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./Profile.css";
-import { UserContext } from "../context/userContext";
+import { UserContext } from "../../context/userContext";
 import M from "materialize-css";
 
 interface Post {
@@ -377,6 +377,14 @@ const Profile = () => {
       return;
     }
 
+    await handlePostDeleteById(selectedPost.id);
+  };
+
+  const handlePostDeleteById = async (postId: string) => {
+    if (!postId) {
+      return;
+    }
+
     const confirmed = window.confirm("Delete this post?");
     if (!confirmed) {
       return;
@@ -391,7 +399,7 @@ const Profile = () => {
     try {
       setIsPostDeleting(true);
 
-      const response = await fetch(`/posts/${selectedPost.id}`, {
+      const response = await fetch(`/posts/${postId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -404,7 +412,7 @@ const Profile = () => {
         throw new Error(data.error || "Failed to delete post");
       }
 
-      setPosts((prev) => prev.filter((post) => post.id !== selectedPost.id));
+      setPosts((prev) => prev.filter((post) => post.id !== postId));
       setShowPostEditor(false);
       setSelectedPost(null);
       setPostImageFile(null);
@@ -540,13 +548,26 @@ const Profile = () => {
           <p>No posts yet</p>
         ) : (
           posts.map((post) => (
-            <img
-              src={post.image}
-              className={`post ${isOwnProfile ? "editable" : ""}`}
-              alt={post.title}
+            <div
+              className={`post-item ${isOwnProfile ? "editable" : ""}`}
               key={post.id}
               onClick={() => handlePostClick(post)}
-            />
+            >
+              <img src={post.image} className="post" alt={post.title} />
+              {isOwnProfile && (
+                <button
+                  className="post-delete-icon btn-flat"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePostDeleteById(post.id);
+                  }}
+                  aria-label="Delete post"
+                  title="Delete post"
+                >
+                  <i className="material-icons">delete</i>
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>

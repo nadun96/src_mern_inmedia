@@ -1,5 +1,5 @@
 import "./App.css";
-import Navbar from "./components/Navbar";
+import Navbar from "./atomic/organisms/NavBar";
 import {
   BrowserRouter,
   Route,
@@ -7,11 +7,11 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Profile from "./pages/Profile";
-import SignUp from "./pages/SignUp";
-import CreatePost from "./pages/CreatePost";
+import Home from "./atomic/pages/Home";
+import Login from "./atomic/pages/Login";
+import Profile from "./atomic/pages/Profile";
+import SignUp from "./atomic/pages/SignUp";
+import CreatePost from "./atomic/pages/CreatePost";
 import { reducer, initialState } from "./reducers/userReducer.ts";
 import { useReducer, useEffect, useContext } from "react";
 import { UserContext } from "./context/userContext.ts";

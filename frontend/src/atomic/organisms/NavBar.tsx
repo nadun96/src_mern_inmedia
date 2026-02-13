@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserContext } from "../context/userContext";
+import { UserContext } from "../../context/userContext";
 
 const Navbar: React.FC = () => {
   const { state, dispatch } = useContext(UserContext);
