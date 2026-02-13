@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './swagger.js';
 import authRouter from './routes/auth.js';
@@ -14,6 +15,7 @@ const app = express();
 const PORT = 3000;
 const prisma = new PrismaClient();
 
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 
 // Swagger setup

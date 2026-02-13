@@ -6,23 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/posts': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/comments': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/profile': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/users': {
+      '^/(?!@vite|@react-refresh|@fs|@id|src|node_modules|assets|favicon\\.ico)(.+)': {
         target: 'http://localhost:3000',
         changeOrigin: true
       }
