@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import M from "materialize-css";
 import { ConfirmDialog } from "../molecules";
+import api from "../../utils/api";
 
 interface User {
   id: string;
@@ -63,25 +64,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
     try {
       setIsSubmitting(true);
-      const token = localStorage.getItem("jwt");
-
-      const response = await fetch("/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          postId,
-          content: commentText,
-        }),
+      const { data: result } = await api.post("/comments", {
+        postId,
+        content: commentText,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to add comment");
-      }
-
-      const result = await response.json();
 
       // Add the new comment to the top of the list
       const updatedComments = [result.comment, ...allComments];
@@ -107,18 +93,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     if (!commentId) return;
 
     try {
-      const token = localStorage.getItem("jwt");
-
-      const response = await fetch(`/comments/${commentId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete comment");
-      }
+      await api.delete(`/comments/${commentId}`);
 
       const updatedComments = allComments.filter((c) => c.id !== commentId);
       setAllComments(updatedComments);

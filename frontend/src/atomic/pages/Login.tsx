@@ -4,6 +4,7 @@ import "./Login.css";
 import M from "materialize-css";
 import { UserContext } from "../../context/userContext";
 import { Button, Input } from "../atoms";
+import api from "../../utils/api";
 
 const Login = () => {
   const { dispatch } = useContext(UserContext);
@@ -21,15 +22,9 @@ const Login = () => {
       M.toast({ html: "Invalid email format", classes: "red" });
       return;
     }
-    fetch("/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .post("/auth/login", { email, password })
+      .then(({ data }) => {
         if (data.error) {
           M.toast({ html: data.error, classes: "red" });
         } else {

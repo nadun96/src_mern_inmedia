@@ -5,6 +5,7 @@ import M from "materialize-css";
 import { Button, Input } from "../atoms";
 import { ImageUploader } from "../molecules";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import api from "../../utils/api";
 
 interface Props {}
 
@@ -39,13 +40,6 @@ const CreatePost = (_props: Props) => {
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      M.toast({ html: "Please login first", classes: "red" });
-      navigate("/login");
-      return;
-    }
-
     try {
       setIsUploading(true);
       M.toast({ html: "Uploading image...", classes: "blue" });
@@ -54,16 +48,11 @@ const CreatePost = (_props: Props) => {
       const imageUrl = await uploadToCloudinary(image);
 
       // Post to backend with Cloudinary URL
-      const response = await fetch("/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, body, image: imageUrl }),
+      const { data } = await api.post("/posts", {
+        title,
+        body,
+        image: imageUrl,
       });
-
-      const data = await response.json();
 
       if (data.error) {
         M.toast({ html: data.error, classes: "red" });

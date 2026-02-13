@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./SignUp.css";
 import M from "materialize-css";
 import { Button, Input } from "../atoms";
+import api from "../../utils/api";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -19,23 +20,15 @@ const SignUp = () => {
       M.toast({ html: "Invalid email format", classes: "red" });
       return;
     }
-    fetch("/auth/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, email, password }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .post("/auth/signup", { name, email, password })
+      .then(({ data }) => {
         if (data.error) {
-          // alert(data.error);
           M.toast({ html: data.error, classes: "red" });
         } else {
           M.toast({ html: "Registration successful!", classes: "green" });
           navigate("/login");
         }
-        // console.log(data);
       })
       .catch((err) => console.error(err));
   };

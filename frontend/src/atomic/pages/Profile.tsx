@@ -7,6 +7,7 @@ import M from "materialize-css";
 import { Avatar, Button, Input, Overlay } from "../atoms";
 import { ImageUploader } from "../molecules";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import api from "../../utils/api";
 
 interface Post {
   id: string;
@@ -60,12 +61,9 @@ const Profile = () => {
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    fetch(`/users/profile/${profileId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .get(`/users/profile/${profileId}`)
+      .then(({ data }) => {
         if (data.error) {
           M.toast({ html: data.error, classes: "red" });
         } else {
@@ -80,12 +78,9 @@ const Profile = () => {
   useEffect(() => {
     if (!profileId) return;
 
-    const token = localStorage.getItem("jwt");
-    fetch(`/posts/author?userId=${profileId}&page=1&limit=10`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .get(`/posts/author?userId=${profileId}&page=1&limit=10`)
+      .then(({ data }) => {
         setPosts(Array.isArray(data.data) ? data.data : []);
       })
       .catch((err) => console.error(err))
@@ -96,17 +91,7 @@ const Profile = () => {
     if (!profileId || !state) return;
 
     try {
-      const token = localStorage.getItem("jwt");
-      const response = await fetch(`/users/${profileId}/follow`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to follow user");
-      }
+      await api.post(`/users/${profileId}/follow`);
 
       setIsFollowing(true);
       if (profile) {
@@ -126,17 +111,7 @@ const Profile = () => {
     if (!profileId || !state) return;
 
     try {
-      const token = localStorage.getItem("jwt");
-      const response = await fetch(`/users/${profileId}/follow`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to unfollow user");
-      }
+      await api.delete(`/users/${profileId}/follow`);
 
       setIsFollowing(false);
       if (profile) {
@@ -170,31 +145,18 @@ const Profile = () => {
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      M.toast({ html: "Please login first", classes: "red" });
-      return;
-    }
-
     try {
       setIsUploading(true);
       M.toast({ html: "Uploading image...", classes: "blue" });
 
       const imageUrl = await uploadToCloudinary(profileImage);
 
-      const response = await fetch("/users/profile/photo", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ profilePicUrl: imageUrl }),
+      const { data } = await api.patch("/users/profile/photo", {
+        profilePicUrl: imageUrl,
       });
 
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to update profile photo");
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       if (data.user?.profilePicUrl) {
@@ -293,12 +255,6 @@ const Profile = () => {
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      M.toast({ html: "Please login first", classes: "red" });
-      return;
-    }
-
     try {
       setIsPostSaving(true);
 
@@ -308,23 +264,14 @@ const Profile = () => {
         finalImageUrl = await uploadToCloudinary(postImageFile);
       }
 
-      const response = await fetch(`/posts/${selectedPost.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: postTitle,
-          body: postBody,
-          image: finalImageUrl,
-        }),
+      const { data } = await api.put(`/posts/${selectedPost.id}`, {
+        title: postTitle,
+        body: postBody,
+        image: finalImageUrl,
       });
 
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to update post");
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       setPosts((prev) =>
@@ -371,26 +318,13 @@ const Profile = () => {
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      M.toast({ html: "Please login first", classes: "red" });
-      return;
-    }
-
     try {
       setIsPostDeleting(true);
 
-      const response = await fetch(`/posts/${postId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const { data } = await api.delete(`/posts/${postId}`);
 
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to delete post");
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       setPosts((prev) => prev.filter((post) => post.id !== postId));

@@ -5,6 +5,7 @@ import M from "materialize-css";
 import { Button, Input } from "../atoms";
 import { ImageUploader } from "../molecules";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import api from "../../utils/api";
 
 interface User {
   id: string;
@@ -162,12 +163,6 @@ const PostCard: React.FC<PostCardProps> = ({
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      M.toast({ html: "Please login first", classes: "red" });
-      return;
-    }
-
     try {
       setIsSaving(true);
 
@@ -177,23 +172,14 @@ const PostCard: React.FC<PostCardProps> = ({
         finalImageUrl = await uploadToCloudinary(editImageFile);
       }
 
-      const response = await fetch(`/posts/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: editTitle,
-          body: editBody,
-          image: finalImageUrl,
-        }),
+      const { data } = await api.put(`/posts/${id}`, {
+        title: editTitle,
+        body: editBody,
+        image: finalImageUrl,
       });
 
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to update post");
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       setLocalTitle(editTitle);

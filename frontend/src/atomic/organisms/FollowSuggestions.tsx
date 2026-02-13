@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import M from "materialize-css";
 import { UserCard } from "../molecules";
+import api from "../../utils/api";
 
 interface SuggestedUser {
   id: string;
@@ -27,12 +28,9 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({
       return;
     }
 
-    const token = localStorage.getItem("jwt");
-    fetch("/users/suggestions/recommended?limit=5", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .get("/users/suggestions/recommended?limit=5")
+      .then(({ data }) => {
         if (data.error) {
           console.error(data.error);
         } else {
@@ -45,17 +43,7 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({
 
   const handleFollow = async (userId: string) => {
     try {
-      const token = localStorage.getItem("jwt");
-      const response = await fetch(`/users/${userId}/follow`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to follow user");
-      }
+      await api.post(`/users/${userId}/follow`);
 
       setFollowedUsers((prev) => new Set([...prev, userId]));
       M.toast({ html: "Successfully followed user", classes: "green" });

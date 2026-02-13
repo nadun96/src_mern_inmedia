@@ -6,6 +6,7 @@ import PostCard from "../organisms/PostCard";
 import FollowSuggestions from "../organisms/FollowSuggestions";
 import FeedLayout from "../templates/FeedLayout";
 import M from "materialize-css";
+import api from "../../utils/api";
 
 interface User {
   id: string;
@@ -59,19 +60,9 @@ const Home = () => {
         setLoadingMore(true);
       }
 
-      const token = localStorage.getItem("jwt");
-      const response = await fetch(`/posts/feed?page=${pageNum}&limit=10`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch posts");
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get(
+        `/posts/feed?page=${pageNum}&limit=10`,
+      );
       const newPosts = Array.isArray(result.data) ? result.data : [];
 
       if (pageNum === 1) {
@@ -167,17 +158,7 @@ const Home = () => {
 
   const handleUnfollow = async (authorId: string) => {
     try {
-      const token = localStorage.getItem("jwt");
-      const response = await fetch(`/users/${authorId}/follow`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to unfollow user");
-      }
+      await api.delete(`/users/${authorId}/follow`);
 
       // Remove all posts by this author from the feed
       setPosts((prev) => prev.filter((post) => post.authorId !== authorId));

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import M from "materialize-css";
+import api from "../../utils/api";
 
 interface User {
   id: string;
@@ -35,24 +36,13 @@ const LikesSection: React.FC<LikesSectionProps> = ({
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("jwt");
 
       if (isLiked) {
         // Unlike
-        await fetch(`/posts/${postId}/like`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await api.delete(`/posts/${postId}/like`);
       } else {
         // Like
-        await fetch(`/posts/${postId}/like`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await api.post(`/posts/${postId}/like`);
       }
 
       onLikeChange();
