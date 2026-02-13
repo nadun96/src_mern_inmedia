@@ -172,7 +172,7 @@ const Home = () => {
           likedBy={post.likedBy}
           comments={post.comments}
           commentCount={post.commentCount}
-          currentUserId={state?.userId}
+          currentUserId={state?.id}
           onPostUpdate={handlePostUpdate}
         />
       ))}

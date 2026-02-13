@@ -22,17 +22,13 @@ const CustomRouteConfig = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem("user") || "null");
-    if (userInfo) {
-      dispatch({ type: "USER", payload: userInfo });
-    } else {
-      const isAuthRoute =
-        location.pathname === "/login" || location.pathname === "/signup";
-      if (!isAuthRoute) {
-        navigate("/login");
-      }
+    // Only check auth status when location changes, and only if state is already loaded from localStorage
+    const isAuthRoute =
+      location.pathname === "/login" || location.pathname === "/signup";
+    if (!state && !isAuthRoute) {
+      navigate("/login");
     }
-  }, [dispatch, location.pathname, navigate]);
+  }, [location.pathname, navigate, state]);
 
   return (
     <Routes>
@@ -46,14 +42,13 @@ const CustomRouteConfig = () => {
 };
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  // Initialize state from localStorage if available
+  const initializeState = () => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : initialState;
+  };
 
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      dispatch({ type: "USER", payload: JSON.parse(user) });
-    }
-  }, []);
+  const [state, dispatch] = useReducer(reducer, null, initializeState);
 
   return (
     <UserContext.Provider value={{ state, dispatch }}>

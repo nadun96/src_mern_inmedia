@@ -113,6 +113,7 @@ const PostCard: React.FC<PostCardProps> = ({
           isLiked={localIsLiked}
           likedBy={localLikedBy}
           onLikeChange={handleLikeChange}
+          isLoggedIn={!!currentUserId}
         />
 
         {/* Comments Section */}

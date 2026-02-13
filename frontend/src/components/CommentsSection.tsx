@@ -32,10 +32,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   onCommentAdded,
 }) => {
   const [showComments, setShowComments] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allComments, setAllComments] = useState<Comment[]>(comments);
-  const [loadingAllComments, setLoadingAllComments] = useState(false);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,28 +81,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       alert("Failed to add comment");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleLoadAllComments = async () => {
-    if (allComments.length > 0 && allComments.length >= commentCount) {
-      return; // Already loaded all
-    }
-
-    try {
-      setLoadingAllComments(true);
-      const response = await fetch(`/comments/${postId}?limit=100`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch comments");
-      }
-
-      const result = await response.json();
-      setAllComments(result.data);
-    } catch (error) {
-      console.error("Error loading comments:", error);
-    } finally {
-      setLoadingAllComments(false);
     }
   };
 
@@ -175,103 +153,174 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       {showComments && (
         <div style={{ marginBottom: "10px" }}>
           {/* Comment Form */}
-          <form
-            onSubmit={handleSubmitComment}
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginBottom: "15px",
-              padding: "10px",
-              backgroundColor: "#f8f9fa",
-              borderRadius: "4px",
-            }}
-          >
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Add a comment..."
-              disabled={isSubmitting}
+          {currentUserId ? (
+            <form
+              onSubmit={handleSubmitComment}
               style={{
-                flex: 1,
-                padding: "8px 12px",
-                border: "1px solid #ddd",
+                display: "flex",
+                gap: "8px",
+                marginBottom: "15px",
+                padding: "10px",
+                backgroundColor: "#f8f9fa",
                 borderRadius: "4px",
-                fontSize: "14px",
               }}
-            />
-            <button
-              type="submit"
-              disabled={isSubmitting}
+            >
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a comment..."
+                disabled={isSubmitting}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "14px",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: isSubmitting ? "#ccc" : "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                {isSubmitting ? "..." : "Post"}
+              </button>
+            </form>
+          ) : (
+            <div
               style={{
-                padding: "8px 16px",
-                backgroundColor: isSubmitting ? "#ccc" : "#007bff",
-                color: "white",
-                border: "none",
+                marginBottom: "15px",
+                padding: "12px",
+                backgroundColor: "#fff3cd",
+                border: "1px solid #ffc107",
                 borderRadius: "4px",
-                cursor: isSubmitting ? "not-allowed" : "pointer",
+                color: "#856404",
                 fontSize: "14px",
               }}
             >
-              {isSubmitting ? "..." : "Post"}
-            </button>
-          </form>
+              <strong>Login to comment</strong> - Please sign in to share your
+              thoughts
+            </div>
+          )}
 
           {/* Comments List */}
-          <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
             {allComments.length > 0 ? (
-              allComments.map((comment) => (
-                <div
-                  key={comment.id}
-                  style={{
-                    padding: "10px",
-                    backgroundColor: "#f8f9fa",
-                    borderRadius: "4px",
-                    marginBottom: "8px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p
+              <>
+                {/* Display limited or all comments */}
+                {(showAllComments ? allComments : allComments.slice(0, 2)).map(
+                  (comment) => (
+                    <div
+                      key={comment.id}
                       style={{
-                        margin: "0 0 5px 0",
-                        fontWeight: "bold",
-                        fontSize: "13px",
+                        padding: "10px",
+                        backgroundColor: "#f8f9fa",
+                        borderRadius: "4px",
+                        marginBottom: "8px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
                       }}
                     >
-                      {comment.author?.name || "Anonymous"}
-                    </p>
-                    <p style={{ margin: "0 0 5px 0", fontSize: "13px" }}>
-                      {comment.content}
-                    </p>
-                    <p style={{ margin: "0", fontSize: "11px", color: "#999" }}>
-                      {new Date(comment.createdAt).toLocaleDateString()} at{" "}
-                      {new Date(comment.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  {currentUserId === comment.authorId && (
-                    <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      style={{
-                        padding: "4px 8px",
-                        backgroundColor: "transparent",
-                        color: "#dc3545",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        marginLeft: "10px",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              ))
+                      <div style={{ flex: 1 }}>
+                        <p
+                          style={{
+                            margin: "0 0 5px 0",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
+                          {comment.author?.name || "Anonymous"}
+                        </p>
+                        <p style={{ margin: "0 0 5px 0", fontSize: "13px" }}>
+                          {comment.content}
+                        </p>
+                        <p
+                          style={{
+                            margin: "0",
+                            fontSize: "11px",
+                            color: "#999",
+                          }}
+                        >
+                          {new Date(comment.createdAt).toLocaleDateString()} at{" "}
+                          {new Date(comment.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      {currentUserId === comment.authorId && (
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          style={{
+                            padding: "4px 8px",
+                            backgroundColor: "transparent",
+                            color: "#dc3545",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            marginLeft: "10px",
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  ),
+                )}
+
+                {/* See More Button */}
+                {!showAllComments && allComments.length > 2 && (
+                  <button
+                    onClick={() => setShowAllComments(true)}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      marginTop: "10px",
+                      backgroundColor: "transparent",
+                      color: "#007bff",
+                      border: "1px solid #007bff",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    See more ({allComments.length - 2} more{" "}
+                    {allComments.length - 2 === 1 ? "comment" : "comments"})
+                  </button>
+                )}
+
+                {/* See Less Button */}
+                {showAllComments && allComments.length > 2 && (
+                  <button
+                    onClick={() => setShowAllComments(false)}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      marginTop: "10px",
+                      backgroundColor: "transparent",
+                      color: "#007bff",
+                      border: "1px solid #007bff",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    See less
+                  </button>
+                )}
+              </>
             ) : (
               <p
                 style={{ textAlign: "center", color: "#999", fontSize: "14px" }}
@@ -280,29 +329,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
               </p>
             )}
           </div>
-
-          {/* Load All Comments Button */}
-          {allComments.length < commentCount && (
-            <button
-              onClick={handleLoadAllComments}
-              disabled={loadingAllComments}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "10px",
-                backgroundColor: "transparent",
-                color: "#007bff",
-                border: "1px solid #007bff",
-                borderRadius: "4px",
-                cursor: loadingAllComments ? "not-allowed" : "pointer",
-                fontSize: "13px",
-              }}
-            >
-              {loadingAllComments
-                ? "Loading..."
-                : `Load all ${commentCount} comments`}
-            </button>
-          )}
         </div>
       )}
     </div>

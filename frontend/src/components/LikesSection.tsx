@@ -12,6 +12,7 @@ interface LikesSectionProps {
   isLiked: boolean;
   likedBy: User[];
   onLikeChange: () => void;
+  isLoggedIn?: boolean;
 }
 
 const LikesSection: React.FC<LikesSectionProps> = ({
@@ -20,11 +21,17 @@ const LikesSection: React.FC<LikesSectionProps> = ({
   isLiked,
   likedBy,
   onLikeChange,
+  isLoggedIn = false,
 }) => {
   const [loading, setLoading] = useState(false);
   const [showLikedBy, setShowLikedBy] = useState(false);
 
   const handleLike = async () => {
+    if (!isLoggedIn) {
+      alert("Please login to like posts");
+      return;
+    }
+
     try {
       setLoading(true);
       const token = localStorage.getItem("jwt");
