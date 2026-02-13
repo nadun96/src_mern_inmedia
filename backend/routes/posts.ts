@@ -6,10 +6,28 @@ const router: Router = express.Router();
 const prisma = new PrismaClient();
 
 // Helper function to add like information to a post
-async function addLikeInfo(post: any, userId?: string) {
-  const likeCount = await prisma.like.count({
-    where: { postId: post.id }
-  });
+async function addLikeInfo(post: any, userId?: string, includeLikedBy: boolean = true) {
+  const [likeCount, likedBy] = await Promise.all([
+    prisma.like.count({
+      where: { postId: post.id }
+    }),
+    includeLikedBy
+      ? prisma.like.findMany({
+          where: { postId: post.id },
+          take: 5, // Limit to first 5 users who liked
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        })
+      : []
+  ]);
   
   let isLiked = false;
   if (userId) {
@@ -27,13 +45,14 @@ async function addLikeInfo(post: any, userId?: string) {
   return {
     ...post,
     likeCount,
-    isLiked
+    isLiked,
+    likedBy: likedBy.map(like => like.user)
   };
 }
 
 // Helper function to add like information to multiple posts
-async function addLikeInfoToPosts(posts: any[], userId?: string) {
-  return Promise.all(posts.map(post => addLikeInfo(post, userId)));
+async function addLikeInfoToPosts(posts: any[], userId?: string, includeLikedBy: boolean = true) {
+  return Promise.all(posts.map(post => addLikeInfo(post, userId, includeLikedBy)));
 }
 
 /**
@@ -58,7 +77,7 @@ async function addLikeInfoToPosts(posts: any[], userId?: string) {
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: List of posts with author details, like count, and pagination info
+ *         description: List of posts with author details, like count, who liked, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -91,6 +110,18 @@ async function addLikeInfoToPosts(posts: any[], userId?: string) {
  *                       isLiked:
  *                         type: boolean
  *                         description: Whether the authenticated user has liked this post
+ *                       likedBy:
+ *                         type: array
+ *                         description: List of users who liked this post (up to 5 most recent)
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                             email:
+ *                               type: string
  *                       author:
  *                         type: object
  *                         properties:
@@ -202,7 +233,7 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: User's posts with like count, liked status, and pagination info
+ *         description: User's posts with like count, who liked, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -235,6 +266,18 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
  *                       isLiked:
  *                         type: boolean
  *                         description: Whether the authenticated user has liked this post
+ *                       likedBy:
+ *                         type: array
+ *                         description: List of users who liked this post (up to 5 most recent)
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                             email:
+ *                               type: string
  *                       author:
  *                         type: object
  *                         properties:
@@ -367,7 +410,7 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *         description: Post ID
  *     responses:
  *       200:
- *         description: Post details with author information, like count, and liked status
+ *         description: Post details with author information, like count, who liked, and liked status
  *         content:
  *           application/json:
  *             schema:
@@ -395,6 +438,18 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *                 isLiked:
  *                   type: boolean
  *                   description: Whether the authenticated user has liked this post
+ *                 likedBy:
+ *                   type: array
+ *                   description: List of users who liked this post (up to 5 most recent)
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
  *                 author:
  *                   type: object
  *                   properties:
