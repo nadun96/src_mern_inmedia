@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import LikesSection from "./LikesSection";
 import CommentsSection from "./CommentsSection";
 import M from "materialize-css";
+import { Button, Input } from "../atoms";
+import { ImageUploader } from "../molecules";
+import { uploadToCloudinary } from "../../utils/cloudinary";
 
 interface User {
   id: string;
@@ -151,28 +154,6 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "inmedia");
-    formData.append("cloud_name", "dkxb9gklg");
-
-    const response = await fetch(
-      "https://api.cloudinary.com/v1_1/dkxb9gklg/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Cloudinary upload failed");
-    }
-
-    const data = await response.json();
-    return data.secure_url;
-  };
-
   const handleEditSave = async () => {
     if (!editTitle.trim() || !editBody.trim()) {
       M.toast({ html: "Title and content are required", classes: "red" });
@@ -264,28 +245,25 @@ const PostCard: React.FC<PostCardProps> = ({
           <div style={{ marginTop: "8px" }}>
             {isEditing ? (
               <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  className="btn waves-effect waves-light #64b5f6 blue darken-1"
+                <Button
+                  color="blue"
                   onClick={handleEditSave}
                   disabled={isSaving}
                 >
                   {isSaving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  className="btn waves-effect waves-light grey"
+                </Button>
+                <Button
+                  color="grey"
                   onClick={handleEditCancel}
                   disabled={isSaving}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             ) : (
-              <button
-                className="btn waves-effect waves-light #64b5f6 blue darken-1"
-                onClick={handleEditStart}
-              >
+              <Button color="blue" onClick={handleEditStart}>
                 Edit
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -302,49 +280,26 @@ const PostCard: React.FC<PostCardProps> = ({
       <div className="card-content">
         {isEditing && canEdit ? (
           <div>
-            <input
+            <Input
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               placeholder="post title"
             />
-            <input
+            <Input
               type="text"
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
               placeholder="post content"
             />
-            <div
-              className="file-field input-field"
+            <ImageUploader
+              label="Update Image"
+              fileName={editImageFile?.name}
+              previewUrl={editImagePreview}
+              onFileChange={handleEditFileChange}
+              disabled={isSaving}
               style={{ marginTop: "10px" }}
-            >
-              <div className="btn #64b5f6 blue darken-1">
-                <span>Update Image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleEditFileChange}
-                  disabled={isSaving}
-                />
-              </div>
-              <div className="file-path-wrapper">
-                <input
-                  className="file-path validate"
-                  type="text"
-                  value={editImageFile?.name || ""}
-                  readOnly
-                />
-              </div>
-            </div>
-            {editImagePreview && (
-              <div style={{ marginTop: "10px" }}>
-                <img
-                  src={editImagePreview}
-                  alt="Preview"
-                  style={{ maxWidth: "100%", maxHeight: "200px" }}
-                />
-              </div>
-            )}
+            />
           </div>
         ) : (
           <div>

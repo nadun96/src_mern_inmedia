@@ -2,10 +2,13 @@ import React from "react";
 import "./CreatePost.css";
 import { useNavigate } from "react-router-dom";
 import M from "materialize-css";
+import { Button, Input } from "../atoms";
+import { ImageUploader } from "../molecules";
+import { uploadToCloudinary } from "../../utils/cloudinary";
 
 interface Props {}
 
-const CreatePost = (props: Props) => {
+const CreatePost = (_props: Props) => {
   const navigate = useNavigate();
   const [title, setTitle] = React.useState<string>("");
   const [body, setBody] = React.useState<string>("");
@@ -17,39 +20,11 @@ const CreatePost = (props: Props) => {
     const file = e.target.files?.[0];
     if (file) {
       setImage(file);
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "inmedia");
-    formData.append("cloud_name", "dkxb9gklg");
-
-    try {
-      const response = await fetch(
-        "https://api.cloudinary.com/v1_1/dkxb9gklg/image/upload",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Cloudinary upload failed");
-      }
-
-      const data = await response.json();
-      return data.secure_url;
-    } catch (error) {
-      console.error("Cloudinary upload error:", error);
-      throw error;
     }
   };
 
@@ -110,57 +85,35 @@ const CreatePost = (props: Props) => {
 
   return (
     <div className="card create-post-container">
-      <input
+      <Input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="post title"
       />
-      <input
+      <Input
         type="text"
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="post content"
       />
-      <div className="file-field input-field" style={{ marginTop: "15px" }}>
-        <div className="btn #64b5f6 blue darken-1">
-          <span>Upload Post Image</span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            disabled={isUploading}
-          />
-        </div>
-        <div className="file-path-wrapper">
-          <input
-            className="file-path validate"
-            type="text"
-            value={image?.name || ""}
-            readOnly
-          />
-        </div>
-      </div>
-      {imagePreview && (
-        <div style={{ marginTop: "15px", marginBottom: "15px" }}>
-          <img
-            src={imagePreview}
-            alt="Preview"
-            style={{
-              maxWidth: "100%",
-              maxHeight: "200px",
-              borderRadius: "4px",
-            }}
-          />
-        </div>
-      )}
-      <button
-        className="btn waves-effect waves-light btn-large #64b5f6 blue darken-1"
+      <ImageUploader
+        label="Upload Post Image"
+        fileName={image?.name}
+        previewUrl={imagePreview}
+        onFileChange={handleFileChange}
+        disabled={isUploading}
+        style={{ marginTop: "15px" }}
+        previewStyle={{ marginBottom: "15px" }}
+      />
+      <Button
+        color="blue"
+        size="large"
         onClick={submitPost}
         disabled={isUploading}
       >
         {isUploading ? "Uploading..." : "Submit Post"}
-      </button>
+      </Button>
     </div>
   );
 };

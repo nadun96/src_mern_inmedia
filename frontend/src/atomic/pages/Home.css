@@ -11,15 +11,3 @@
     border-radius: 50%;
     margin-right: 20px;
 }
-
-/* Responsive design for smaller screens */
-@media (max-width: 900px) {
-    .home-layout {
-        flex-direction: column !important;
-    }
-    
-    .sidebar {
-        width: 100% !important;
-        position: static !important;
-    }
-}

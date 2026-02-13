@@ -4,6 +4,9 @@ import { useParams } from "react-router-dom";
 import "./Profile.css";
 import { UserContext } from "../../context/userContext";
 import M from "materialize-css";
+import { Avatar, Button, Input, Overlay } from "../atoms";
+import { ImageUploader } from "../molecules";
+import { uploadToCloudinary } from "../../utils/cloudinary";
 
 interface Post {
   id: string;
@@ -159,28 +162,6 @@ const Profile = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "inmedia");
-    formData.append("cloud_name", "dkxb9gklg");
-
-    const response = await fetch(
-      "https://api.cloudinary.com/v1_1/dkxb9gklg/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Cloudinary upload failed");
-    }
-
-    const data = await response.json();
-    return data.secure_url;
   };
 
   const handleProfilePhotoUpload = async () => {
@@ -430,85 +411,58 @@ const Profile = () => {
     <div className="main-container">
       <div className="profile-container">
         <div>
-          <img
-            className="profile-image"
+          <Avatar
             src={profile?.profilePicUrl || "https://via.placeholder.com/166"}
             alt="Profile"
+            size={166}
             onClick={handlePhotoMenuOpen}
+            className="profile-image"
           />
           {showPhotoMenu && (
-            <div className="photo-menu-overlay" onClick={handlePhotoMenuClose}>
-              <div className="photo-menu" onClick={(e) => e.stopPropagation()}>
-                <button
-                  className="btn waves-effect waves-light #64b5f6 blue darken-1"
-                  onClick={handleViewPhoto}
-                >
+            <Overlay onClose={handlePhotoMenuClose}>
+              <div className="photo-menu">
+                <Button color="blue" onClick={handleViewPhoto}>
                   View Photo
-                </button>
+                </Button>
                 {isOwnProfile && (
-                  <button
-                    className="btn waves-effect waves-light #64b5f6 blue darken-1"
-                    onClick={handleUpdatePhoto}
-                  >
+                  <Button color="blue" onClick={handleUpdatePhoto}>
                     Update Photo
-                  </button>
+                  </Button>
                 )}
-                <button
-                  className="btn waves-effect waves-light grey"
-                  onClick={handlePhotoMenuClose}
-                >
+                <Button color="grey" onClick={handlePhotoMenuClose}>
                   Cancel
-                </button>
+                </Button>
               </div>
-            </div>
+            </Overlay>
           )}
           {showPhotoViewer && (
-            <div className="photo-viewer-overlay" onClick={handleCloseViewer}>
+            <Overlay variant="dark" onClose={handleCloseViewer}>
               <img
                 className="photo-viewer-image"
                 src={
                   profile?.profilePicUrl || "https://via.placeholder.com/166"
                 }
                 alt="Profile"
-                onClick={(e) => e.stopPropagation()}
               />
-            </div>
+            </Overlay>
           )}
           {isOwnProfile && showUploader && (
             <div className="profile-upload">
-              <div className="file-field input-field">
-                <div className="btn #64b5f6 blue darken-1">
-                  <span>Upload Photo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileFileChange}
-                    disabled={isUploading}
-                  />
-                </div>
-                <div className="file-path-wrapper">
-                  <input
-                    className="file-path validate"
-                    type="text"
-                    value={profileImage?.name || ""}
-                    readOnly
-                  />
-                </div>
-              </div>
-              {profileImagePreview && (
-                <img
-                  src={profileImagePreview}
-                  alt="Profile preview"
-                  className="profile-preview"
-                />
-              )}
-              <button
-                className="btn waves-effect waves-light #64b5f6 blue darken-1"
+              <ImageUploader
+                label="Upload Photo"
+                fileName={profileImage?.name}
+                previewUrl={profileImagePreview}
+                onFileChange={handleProfileFileChange}
+                disabled={isUploading}
+                previewClassName="profile-preview"
+              />
+              <Button
+                color="blue"
                 onClick={handleProfilePhotoUpload}
                 disabled={isUploading}
               >
                 {isUploading ? "Uploading..." : "Save Photo"}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -523,19 +477,13 @@ const Profile = () => {
           {!isOwnProfile && state && (
             <div style={{ marginTop: "15px" }}>
               {isFollowing ? (
-                <button
-                  className="btn waves-effect waves-light #c62828 red darken-3"
-                  onClick={handleUnfollow}
-                >
+                <Button color="red" onClick={handleUnfollow}>
                   Unfollow
-                </button>
+                </Button>
               ) : (
-                <button
-                  className="btn waves-effect waves-light #6a1b9a purple darken-3"
-                  onClick={handleFollow}
-                >
+                <Button color="purple" onClick={handleFollow}>
                   Follow
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -572,77 +520,58 @@ const Profile = () => {
         )}
       </div>
       {showPostEditor && selectedPost && (
-        <div className="post-editor-overlay" onClick={handlePostEditorClose}>
-          <div className="post-editor" onClick={(e) => e.stopPropagation()}>
+        <Overlay variant="medium" onClose={handlePostEditorClose} zIndex={1100}>
+          <div className="post-editor">
             <h5>Edit Post</h5>
-            <input
+            <Input
               type="text"
               value={postTitle}
               onChange={(e) => setPostTitle(e.target.value)}
               placeholder="post title"
             />
-            <input
+            <Input
               type="text"
               value={postBody}
               onChange={(e) => setPostBody(e.target.value)}
               placeholder="post content"
             />
-            <div
-              className="file-field input-field"
+            <ImageUploader
+              label="Update Image"
+              fileName={postImageFile?.name}
+              previewUrl={postImagePreview || postImageUrl}
+              onFileChange={handlePostFileChange}
+              disabled={isPostSaving}
               style={{ marginTop: "10px" }}
-            >
-              <div className="btn #64b5f6 blue darken-1">
-                <span>Update Image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePostFileChange}
-                  disabled={isPostSaving}
-                />
-              </div>
-              <div className="file-path-wrapper">
-                <input
-                  className="file-path validate"
-                  type="text"
-                  value={postImageFile?.name || ""}
-                  readOnly
-                />
-              </div>
-            </div>
-            {(postImagePreview || postImageUrl) && (
-              <img
-                src={postImagePreview || postImageUrl}
-                alt="Post preview"
-                className="post-edit-preview"
-              />
-            )}
+              previewClassName="post-edit-preview"
+            />
             <div className="post-editor-actions">
-              <button
-                className="btn-flat post-delete-button"
+              <Button
+                variant="flat"
+                className="post-delete-button"
                 onClick={handlePostDelete}
                 disabled={isPostSaving || isPostDeleting}
-                aria-label="Delete post"
+                ariaLabel="Delete post"
                 title="Delete post"
               >
                 <i className="material-icons">delete</i>
-              </button>
-              <button
-                className="btn waves-effect waves-light #64b5f6 blue darken-1"
+              </Button>
+              <Button
+                color="blue"
                 onClick={handlePostSave}
                 disabled={isPostSaving || isPostDeleting}
               >
                 {isPostSaving ? "Saving..." : "Save"}
-              </button>
-              <button
-                className="btn waves-effect waves-light grey"
+              </Button>
+              <Button
+                color="grey"
                 onClick={handlePostEditorClose}
                 disabled={isPostSaving || isPostDeleting}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </Overlay>
       )}
     </div>
   );

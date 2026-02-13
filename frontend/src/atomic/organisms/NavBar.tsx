@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../../context/userContext";
+import Button from "../atoms/Button";
 
 const Navbar: React.FC = () => {
   const { state, dispatch } = useContext(UserContext);
@@ -16,8 +17,8 @@ const Navbar: React.FC = () => {
           <Link to="/create-post">Create Post</Link>
         </li>,
         <li key="logout">
-          <button
-            className="btn #c62828 red darken-3"
+          <Button
+            color="red"
             onClick={() => {
               localStorage.clear();
               dispatch({ type: "LOGOUT" });
@@ -25,7 +26,7 @@ const Navbar: React.FC = () => {
             }}
           >
             Logout
-          </button>
+          </Button>
         </li>,
       ];
     } else {

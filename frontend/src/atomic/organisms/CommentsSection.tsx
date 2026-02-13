@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import M from "materialize-css";
+import { ConfirmDialog } from "../molecules";
 
 interface User {
   id: string;
@@ -371,74 +372,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-          onClick={closeDeleteConfirm}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "4px",
-              padding: "30px",
-              maxWidth: "400px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h5 style={{ marginTop: "0", marginBottom: "20px" }}>
-              Delete Comment?
-            </h5>
-            <p style={{ marginBottom: "20px", color: "#666" }}>
-              Are you sure you want to delete this comment? This cannot be
-              undone.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                onClick={closeDeleteConfirm}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#f0f0f0",
-                  color: "#333",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteComment()}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#dc3545",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Delete Comment?"
+          message="Are you sure you want to delete this comment? This cannot be undone."
+          onConfirm={() => handleDeleteComment()}
+          onCancel={closeDeleteConfirm}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+        />
       )}
     </div>
   );

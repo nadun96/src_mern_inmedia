@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../../context/userContext";
 import PostCard from "../organisms/PostCard";
 import FollowSuggestions from "../organisms/FollowSuggestions";
+import FeedLayout from "../templates/FeedLayout";
 
 interface User {
   id: string;
@@ -58,7 +59,7 @@ const Home = () => {
       }
 
       const token = localStorage.getItem("jwt");
-      const response = await fetch(`/posts?page=${pageNum}&limit=10`, {
+      const response = await fetch(`/posts/feed?page=${pageNum}&limit=10`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -125,70 +126,29 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          padding: "20px",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
-        <div style={{ flex: "0 0 300px" }}>
-          <FollowSuggestions currentUserId={state?.id} />
-        </div>
-        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
-          <p style={{ textAlign: "center", padding: "20px" }}>
-            Loading posts...
-          </p>
-        </div>
-      </div>
+      <FeedLayout sidebar={<FollowSuggestions currentUserId={state?.id} />}>
+        <p style={{ textAlign: "center", padding: "20px" }}>Loading posts...</p>
+      </FeedLayout>
     );
   }
 
   if (error) {
     return (
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          padding: "20px",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
-        <div style={{ flex: "0 0 300px" }}>
-          <FollowSuggestions currentUserId={state?.id} />
-        </div>
-        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
-          <p style={{ textAlign: "center", padding: "20px", color: "red" }}>
-            {error}
-          </p>
-        </div>
-      </div>
+      <FeedLayout sidebar={<FollowSuggestions currentUserId={state?.id} />}>
+        <p style={{ textAlign: "center", padding: "20px", color: "red" }}>
+          {error}
+        </p>
+      </FeedLayout>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          padding: "20px",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
-        <div style={{ flex: "0 0 300px" }}>
-          <FollowSuggestions currentUserId={state?.id} />
-        </div>
-        <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
-          <p style={{ textAlign: "center", padding: "20px" }}>
-            No posts yet. <Link to="/create-post">Create one!</Link>
-          </p>
-        </div>
-      </div>
+      <FeedLayout sidebar={<FollowSuggestions currentUserId={state?.id} />}>
+        <p style={{ textAlign: "center", padding: "20px" }}>
+          No posts yet. <Link to="/create-post">Create one!</Link>
+        </p>
+      </FeedLayout>
     );
   }
 
@@ -205,64 +165,41 @@ const Home = () => {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "20px",
-        padding: "20px",
-        maxWidth: "1400px",
-        margin: "0 auto",
-      }}
-    >
-      {/* Left Sidebar */}
-      <div
-        style={{
-          flex: "0 0 300px",
-          position: "sticky",
-          top: "20px",
-          height: "fit-content",
-        }}
-      >
-        <FollowSuggestions currentUserId={state?.id} />
-      </div>
-
-      {/* Main Content */}
-      <div style={{ flex: "1", maxWidth: "600px", margin: "0 auto" }}>
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            id={post.id}
-            title={post.title}
-            body={post.body}
-            image={post.image}
-            author={post.author}
-            createdAt={post.createdAt}
-            updatedAt={post.updatedAt}
-            likeCount={post.likeCount}
-            isLiked={post.isLiked}
-            likedBy={post.likedBy}
-            comments={post.comments}
-            commentCount={post.commentCount}
-            currentUserId={state?.id}
-            enableEdit={false}
-            onPostUpdate={handlePostUpdate}
-            onCommentUpdate={(updatedPost) =>
-              handleCommentUpdate(post.id, updatedPost)
-            }
-          />
-        ))}
-        {loadingMore && (
-          <div style={{ textAlign: "center", padding: "20px" }}>
-            <p>Loading more posts...</p>
-          </div>
-        )}
-        {!hasNextPage && posts.length > 0 && (
-          <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
-            <p>No more posts to load</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <FeedLayout sidebar={<FollowSuggestions currentUserId={state?.id} />}>
+      {posts.map((post) => (
+        <PostCard
+          key={post.id}
+          id={post.id}
+          title={post.title}
+          body={post.body}
+          image={post.image}
+          author={post.author}
+          createdAt={post.createdAt}
+          updatedAt={post.updatedAt}
+          likeCount={post.likeCount}
+          isLiked={post.isLiked}
+          likedBy={post.likedBy}
+          comments={post.comments}
+          commentCount={post.commentCount}
+          currentUserId={state?.id}
+          enableEdit={false}
+          onPostUpdate={handlePostUpdate}
+          onCommentUpdate={(updatedPost) =>
+            handleCommentUpdate(post.id, updatedPost)
+          }
+        />
+      ))}
+      {loadingMore && (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <p>Loading more posts...</p>
+        </div>
+      )}
+      {!hasNextPage && posts.length > 0 && (
+        <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
+          <p>No more posts to load</p>
+        </div>
+      )}
+    </FeedLayout>
   );
 };
 

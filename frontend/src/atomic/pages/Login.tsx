@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 import M from "materialize-css";
 import { UserContext } from "../../context/userContext";
+import { Button, Input } from "../atoms";
 
 const Login = () => {
-  const { state, dispatch } = useContext(UserContext);
+  const { dispatch } = useContext(UserContext);
 
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -46,7 +47,7 @@ const Login = () => {
     <div className="login-container ">
       <div className="card login-card input-field">
         <h2>Login</h2>
-        <input
+        <Input
           type="email"
           name="email"
           id="email"
@@ -54,7 +55,7 @@ const Login = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <input
+        <Input
           type="password"
           name="password"
           id="password"
@@ -62,12 +63,9 @@ const Login = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button
-          className="btn waves-effect waves-light btn-large #6a1b9a purple darken-3"
-          onClick={login}
-        >
+        <Button color="purple" size="large" onClick={login}>
           Login
-        </button>
+        </Button>
         <p>
           Don't have an account? <Link to="/signup">Sign Up</Link>
         </p>

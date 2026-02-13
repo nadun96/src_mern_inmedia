@@ -274,6 +274,66 @@ router.get('/', optionalAuthentication, async (request: Request, response: Respo
   }
 });
 
+// GET /posts/feed - Get posts only from users the authenticated user follows (+ own posts)
+router.get('/feed', authenticateToken, async (request: Request, response: Response) => {
+  try {
+    const userId = request.user!.userId;
+    const page = Math.max(1, parseInt(request.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(request.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    // Get IDs of users the current user follows
+    const follows = await prisma.follow.findMany({
+      where: { followerId: userId },
+      select: { followingId: true }
+    });
+
+    const followingIds = follows.map(f => f.followingId);
+    // Include the user's own posts in the feed
+    const authorIds = [userId, ...followingIds];
+
+    const where = { authorId: { in: authorIds } };
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.post.count({ where })
+    ]);
+
+    const enrichedPosts = await addPostMetadataToPosts(posts, userId);
+    const totalPages = Math.ceil(total / limit);
+
+    response.status(200).json({
+      data: enrichedPosts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get feed error:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 /**
  * @swagger
  * /posts/author:

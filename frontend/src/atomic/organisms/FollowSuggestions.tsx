@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import M from "materialize-css";
+import { UserCard } from "../molecules";
 
 interface SuggestedUser {
   id: string;
@@ -104,65 +104,16 @@ const FollowSuggestions: React.FC<FollowSuggestionsProps> = ({
         }}
       >
         {suggestions.map((user) => (
-          <div
+          <UserCard
             key={user.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px",
-              backgroundColor: "white",
-              borderRadius: "4px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            <Link
-              to={`/profile/${user.id}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                textDecoration: "none",
-                color: "inherit",
-                flex: 1,
-              }}
-            >
-              <img
-                src={user.profilePicUrl || "https://via.placeholder.com/40"}
-                alt={user.name}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                }}
-              />
-              <div>
-                <p style={{ margin: "0", fontWeight: "500" }}>{user.name}</p>
-                <p
-                  style={{
-                    margin: "0",
-                    fontSize: "12px",
-                    color: "#666",
-                  }}
-                >
-                  {user.followerCount}{" "}
-                  {user.followerCount === 1 ? "follower" : "followers"}
-                </p>
-              </div>
-            </Link>
-            <button
-              onClick={() => handleFollow(user.id)}
-              disabled={followedUsers.has(user.id)}
-              className="btn waves-effect waves-light #6a1b9a purple darken-3"
-              style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-              }}
-            >
-              {followedUsers.has(user.id) ? "Following" : "Follow"}
-            </button>
-          </div>
+            userId={user.id}
+            name={user.name}
+            profilePicUrl={user.profilePicUrl}
+            subtitle={`${user.followerCount} ${user.followerCount === 1 ? "follower" : "followers"}`}
+            actionLabel={followedUsers.has(user.id) ? "Following" : "Follow"}
+            actionDisabled={followedUsers.has(user.id)}
+            onAction={() => handleFollow(user.id)}
+          />
         ))}
       </div>
     </div>

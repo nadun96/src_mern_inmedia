@@ -18,7 +18,7 @@ import { UserContext } from "./context/userContext.ts";
 
 const CustomRouteConfig = () => {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(UserContext);
+  const { state } = useContext(UserContext);
   const location = useLocation();
 
   useEffect(() => {

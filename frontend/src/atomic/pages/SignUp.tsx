@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./SignUp.css";
 import M from "materialize-css";
+import { Button, Input } from "../atoms";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ const SignUp = () => {
     <div className="login-container ">
       <div className="card login-card input-field">
         <h2>Sign Up</h2>
-        <input
+        <Input
           type="text"
           name="name"
           id="name"
@@ -50,7 +51,7 @@ const SignUp = () => {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
+        <Input
           type="email"
           name="email"
           id="email"
@@ -58,7 +59,7 @@ const SignUp = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <input
+        <Input
           type="password"
           name="password"
           id="password"
@@ -66,12 +67,9 @@ const SignUp = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button
-          className="btn waves-effect waves-light btn-large #6a1b9a purple darken-3"
-          onClick={register}
-        >
+        <Button color="purple" size="large" onClick={register}>
           Sign Up
-        </button>
+        </Button>
         <p>
           Already have an account? <Link to="/login">Login</Link>
         </p>
