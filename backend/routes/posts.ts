@@ -5,6 +5,37 @@ import { authenticateToken, optionalAuthentication } from '../middleware/auth.js
 const router: Router = express.Router();
 const prisma = new PrismaClient();
 
+// Helper function to add like information to a post
+async function addLikeInfo(post: any, userId?: string) {
+  const likeCount = await prisma.like.count({
+    where: { postId: post.id }
+  });
+  
+  let isLiked = false;
+  if (userId) {
+    const like = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId: post.id
+        }
+      }
+    });
+    isLiked = !!like;
+  }
+  
+  return {
+    ...post,
+    likeCount,
+    isLiked
+  };
+}
+
+// Helper function to add like information to multiple posts
+async function addLikeInfoToPosts(posts: any[], userId?: string) {
+  return Promise.all(posts.map(post => addLikeInfo(post, userId)));
+}
+
 /**
  * @swagger
  * /posts:
@@ -27,7 +58,7 @@ const prisma = new PrismaClient();
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: List of posts with author details and pagination info
+ *         description: List of posts with author details, like count, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -54,6 +85,12 @@ const prisma = new PrismaClient();
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
+ *                       likeCount:
+ *                         type: integer
+ *                         description: Number of likes on the post
+ *                       isLiked:
+ *                         type: boolean
+ *                         description: Whether the authenticated user has liked this post
  *                       author:
  *                         type: object
  *                         properties:
@@ -89,7 +126,7 @@ const prisma = new PrismaClient();
  *               $ref: '#/components/schemas/Error'
  */
 // GET /posts - Get all posts with pagination
-router.get('/', async (request: Request, response: Response) => {
+router.get('/', optionalAuthentication, async (request: Request, response: Response) => {
   try {
     const page = Math.max(1, parseInt(request.query.page as string) || 1);
     const limit = Math.max(1, Math.min(100, parseInt(request.query.limit as string) || 10));
@@ -114,10 +151,13 @@ router.get('/', async (request: Request, response: Response) => {
       prisma.post.count()
     ]);
 
+    // Add like information to each post
+    const postsWithLikes = await addLikeInfoToPosts(posts, request.user?.userId);
+
     const totalPages = Math.ceil(total / limit);
 
     response.status(200).json({
-      data: posts,
+      data: postsWithLikes,
       pagination: {
         page,
         limit,
@@ -162,7 +202,7 @@ router.get('/', async (request: Request, response: Response) => {
  *         description: Number of posts per page
  *     responses:
  *       200:
- *         description: User's posts with pagination info
+ *         description: User's posts with like count, liked status, and pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -189,6 +229,12 @@ router.get('/', async (request: Request, response: Response) => {
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
+ *                       likeCount:
+ *                         type: integer
+ *                         description: Number of likes on the post
+ *                       isLiked:
+ *                         type: boolean
+ *                         description: Whether the authenticated user has liked this post
  *                       author:
  *                         type: object
  *                         properties:
@@ -283,10 +329,13 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
       prisma.post.count({ where: { authorId: targetUserId } })
     ]);
 
+    // Add like information to each post
+    const postsWithLikes = await addLikeInfoToPosts(posts, request.user?.userId);
+
     const totalPages = Math.ceil(total / limit);
 
     response.status(200).json({
-      data: posts,
+      data: postsWithLikes,
       pagination: {
         page,
         limit,
@@ -318,7 +367,7 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *         description: Post ID
  *     responses:
  *       200:
- *         description: Post details with author information
+ *         description: Post details with author information, like count, and liked status
  *         content:
  *           application/json:
  *             schema:
@@ -340,6 +389,12 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *                 updatedAt:
  *                   type: string
  *                   format: date-time
+ *                 likeCount:
+ *                   type: integer
+ *                   description: Number of likes on the post
+ *                 isLiked:
+ *                   type: boolean
+ *                   description: Whether the authenticated user has liked this post
  *                 author:
  *                   type: object
  *                   properties:
@@ -366,7 +421,7 @@ router.get('/author', optionalAuthentication, async (request: Request, response:
  *               $ref: '#/components/schemas/Error'
  */
 // GET /posts/:id - Get single post by id
-router.get('/:id', async (request: Request, response: Response) => {
+router.get('/:id', optionalAuthentication, async (request: Request, response: Response) => {
   try {
     const { id } = request.params;
     const post = await prisma.post.findUnique({
@@ -388,7 +443,10 @@ router.get('/:id', async (request: Request, response: Response) => {
       return;
     }
 
-    response.status(200).json(post);
+    // Add like information
+    const postWithLikes = await addLikeInfo(post, request.user?.userId);
+
+    response.status(200).json(postWithLikes);
   } catch (error) {
     console.error('Get post error:', error);
     response.status(500).json({ error: 'Internal server error' });
@@ -684,6 +742,341 @@ router.delete('/:id', authenticateToken, async (request: Request, response: Resp
     response.status(200).json({ message: 'Post deleted successfully' });
   } catch (error) {
     console.error('Delete post error:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /posts/{id}/like:
+ *   post:
+ *     summary: Like a post
+ *     tags:
+ *       - Posts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *     responses:
+ *       201:
+ *         description: Post liked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 like:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     userId:
+ *                       type: string
+ *                     postId:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: User has already liked this post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// POST /posts/:id/like - Like a post (protected route)
+router.post('/:id/like', authenticateToken, async (request: Request, response: Response) => {
+  try {
+    const { id } = request.params;
+    const userId = request.user!.userId;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: id as string }
+    });
+
+    if (!post) {
+      response.status(404).json({ error: 'Post not found' });
+      return;
+    }
+
+    // Check if user has already liked this post
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId: id as string
+        }
+      }
+    });
+
+    if (existingLike) {
+      response.status(400).json({ error: 'You have already liked this post' });
+      return;
+    }
+
+    // Create like
+    const like = await prisma.like.create({
+      data: {
+        userId,
+        postId: id as string
+      }
+    });
+
+    response.status(201).json({
+      message: 'Post liked successfully',
+      like
+    });
+  } catch (error) {
+    console.error('Like post error:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /posts/{id}/like:
+ *   delete:
+ *     summary: Unlike a post
+ *     tags:
+ *       - Posts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *     responses:
+ *       200:
+ *         description: Post unliked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Post not found or user has not liked this post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// DELETE /posts/:id/like - Unlike a post (protected route)
+router.delete('/:id/like', authenticateToken, async (request: Request, response: Response) => {
+  try {
+    const { id } = request.params;
+    const userId = request.user!.userId;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: id as string }
+    });
+
+    if (!post) {
+      response.status(404).json({ error: 'Post not found' });
+      return;
+    }
+
+    // Check if like exists
+    const like = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId: id as string
+        }
+      }
+    });
+
+    if (!like) {
+      response.status(404).json({ error: 'You have not liked this post' });
+      return;
+    }
+
+    // Delete like
+    await prisma.like.delete({
+      where: {
+        userId_postId: {
+          userId,
+          postId: id as string
+        }
+      }
+    });
+
+    response.status(200).json({ message: 'Post unliked successfully' });
+  } catch (error) {
+    console.error('Unlike post error:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /posts/{id}/likes:
+ *   get:
+ *     summary: Get all users who liked a post
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (starts at 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of likes per page
+ *     responses:
+ *       200:
+ *         description: List of users who liked the post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       userId:
+ *                         type: string
+ *                       postId:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// GET /posts/:id/likes - Get all users who liked a post
+router.get('/:id/likes', async (request: Request, response: Response) => {
+  try {
+    const { id } = request.params;
+    const page = Math.max(1, parseInt(request.query.page as string) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(request.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    // Check if post exists
+    const post = await prisma.post.findUnique({
+      where: { id: id as string }
+    });
+
+    if (!post) {
+      response.status(404).json({ error: 'Post not found' });
+      return;
+    }
+
+    // Get likes with pagination
+    const [likes, total] = await Promise.all([
+      prisma.like.findMany({
+        where: { postId: id as string },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.like.count({ where: { postId: id as string } })
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    response.status(200).json({
+      data: likes,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get likes error:', error);
     response.status(500).json({ error: 'Internal server error' });
   }
 });
