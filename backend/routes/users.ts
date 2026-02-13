@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 const prisma = new PrismaClient();
 
 /**
@@ -50,7 +50,7 @@ const prisma = new PrismaClient();
  */
 router.get('/profile/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
     const currentUserId = req.user?.userId;
 
     const user = await prisma.user.findUnique({
@@ -130,7 +130,7 @@ router.get('/profile/:userId', async (req, res) => {
  */
 router.post('/:userId/follow', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
     const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
@@ -214,7 +214,7 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
  */
 router.delete('/:userId/follow', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
     const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
@@ -229,7 +229,7 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
       },
     });
 
-    if (result.deletedCount === 0) {
+    if (result.count === 0) {
       return res.status(404).json({ error: 'Not following this user' });
     }
 
@@ -287,7 +287,7 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
  */
 router.get('/:userId/followers', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
@@ -370,7 +370,7 @@ router.get('/:userId/followers', async (req, res) => {
  */
 router.get('/:userId/following', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
