@@ -1,7 +1,25 @@
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import "./Home.css";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../context/userContext";
+import PostCard from "../components/PostCard";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  authorId: string;
+  postId: string;
+  createdAt: string;
+  updatedAt: string;
+  author: User;
+}
 
 interface Post {
   id: string;
@@ -11,12 +29,12 @@ interface Post {
   authorId: string;
   createdAt: string;
   updatedAt: string;
-  author: {
-    id: string;
-    name: string;
-    email: string;
-    createdAt: string;
-  };
+  author: User;
+  likeCount: number;
+  isLiked: boolean;
+  likedBy: User[];
+  comments: Comment[];
+  commentCount: number;
 }
 
 const Home = () => {
@@ -132,37 +150,31 @@ const Home = () => {
     );
   }
 
+  const handlePostUpdate = () => {
+    // Refresh posts to get updated comments/likes
+    fetchPosts(1);
+  };
+
   return (
     <div className="home-container">
       {posts.map((post) => (
-        <div key={post.id} className="card home-card">
-          <h5 style={{ padding: "10px" }}>
-            <strong>{post.author?.name || "Anonymous"}</strong>
-          </h5>
-          {post.image && (
-            <div className="card-image">
-              <img src={post.image} alt={post.title} />
-            </div>
-          )}
-          <div className="card-content">
-            <h6>{post.title}</h6>
-            <p>{post.body}</p>
-            <div>
-              <i
-                className="material-icons"
-                style={{ color: "red", marginRight: "10px" }}
-              >
-                favorite
-              </i>
-              <span>0 likes</span>
-            </div>
-            <input
-              type="text"
-              placeholder="Add a comment..."
-              style={{ marginTop: "10px" }}
-            />
-          </div>
-        </div>
+        <PostCard
+          key={post.id}
+          id={post.id}
+          title={post.title}
+          body={post.body}
+          image={post.image}
+          author={post.author}
+          createdAt={post.createdAt}
+          updatedAt={post.updatedAt}
+          likeCount={post.likeCount}
+          isLiked={post.isLiked}
+          likedBy={post.likedBy}
+          comments={post.comments}
+          commentCount={post.commentCount}
+          currentUserId={state?.userId}
+          onPostUpdate={handlePostUpdate}
+        />
       ))}
       {loadingMore && (
         <div style={{ textAlign: "center", padding: "20px" }}>

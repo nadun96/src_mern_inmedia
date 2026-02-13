@@ -1,0 +1,115 @@
+import React, { useState } from "react";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface LikesSectionProps {
+  postId: string;
+  likeCount: number;
+  isLiked: boolean;
+  likedBy: User[];
+  onLikeChange: () => void;
+}
+
+const LikesSection: React.FC<LikesSectionProps> = ({
+  postId,
+  likeCount,
+  isLiked,
+  likedBy,
+  onLikeChange,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [showLikedBy, setShowLikedBy] = useState(false);
+
+  const handleLike = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("jwt");
+
+      if (isLiked) {
+        // Unlike
+        await fetch(`/posts/${postId}/like`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        // Like
+        await fetch(`/posts/${postId}/like`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      onLikeChange();
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "10px", marginBottom: "10px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          cursor: "pointer",
+        }}
+        onClick={handleLike}
+      >
+        <i
+          className="material-icons"
+          style={{
+            color: isLiked ? "red" : "#999",
+            cursor: "pointer",
+            opacity: loading ? 0.5 : 1,
+          }}
+        >
+          {isLiked ? "favorite" : "favorite_border"}
+        </i>
+        <span
+          style={{
+            color: isLiked ? "red" : "#333",
+            fontWeight: isLiked ? "bold" : "normal",
+            cursor: "pointer",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (likeCount > 0) setShowLikedBy(!showLikedBy);
+          }}
+        >
+          {likeCount} {likeCount === 1 ? "like" : "likes"}
+        </span>
+      </div>
+
+      {showLikedBy && likedBy.length > 0 && (
+        <div
+          style={{
+            fontSize: "12px",
+            color: "#666",
+            marginTop: "8px",
+            paddingLeft: "30px",
+          }}
+        >
+          <p style={{ margin: "5px 0", fontWeight: "bold" }}>Liked by:</p>
+          {likedBy.map((user) => (
+            <p key={user.id} style={{ margin: "3px 0" }}>
+              {user.name}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LikesSection;
