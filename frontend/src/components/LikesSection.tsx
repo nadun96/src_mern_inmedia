@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import M from "materialize-css";
 
 interface User {
   id: string;
@@ -28,7 +29,7 @@ const LikesSection: React.FC<LikesSectionProps> = ({
 
   const handleLike = async () => {
     if (!isLoggedIn) {
-      alert("Please login to like posts");
+      M.toast({ html: "Please login to like posts", classes: "red" });
       return;
     }
 

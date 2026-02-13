@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import M from "materialize-css";
 
 interface User {
   id: string;
@@ -41,12 +42,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     e.preventDefault();
 
     if (!commentText.trim()) {
-      alert("Please enter a comment");
+      M.toast({ html: "Please enter a comment", classes: "red" });
       return;
     }
 
     if (!currentUserId) {
-      alert("Please login to comment");
+      M.toast({ html: "Please login to comment", classes: "red" });
       return;
     }
 
@@ -78,7 +79,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       onCommentAdded();
     } catch (error) {
       console.error("Error adding comment:", error);
-      alert("Failed to add comment");
+      M.toast({ html: "Failed to add comment", classes: "red" });
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +108,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       onCommentAdded();
     } catch (error) {
       console.error("Error deleting comment:", error);
-      alert("Failed to delete comment");
+      M.toast({ html: "Failed to delete comment", classes: "red" });
     }
   };
 
